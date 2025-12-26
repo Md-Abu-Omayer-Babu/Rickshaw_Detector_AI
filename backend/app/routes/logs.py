@@ -27,23 +27,23 @@ async def get_logs(
     start_date: Optional[str] = Query(
         None,
         description="Start date filter (ISO format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS)",
-        example="2024-01-01"
+        examples=["2024-01-01"]
     ),
     end_date: Optional[str] = Query(
         None,
         description="End date filter (ISO format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS)",
-        example="2024-12-31"
+        examples=["2024-12-31"]
     ),
     event_type: Optional[str] = Query(
         None,
         description="Filter by event type",
-        example="entry",
-        regex="^(entry|exit)$"
+        examples=["entry"],
+        pattern="^(entry|exit)$"
     ),
     camera_id: Optional[str] = Query(
         None,
         description="Filter by camera ID",
-        example="camera_01"
+        examples=["camera_01"]
     ),
     limit: int = Query(
         100,

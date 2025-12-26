@@ -221,53 +221,7 @@ class VideoService:
             if output_path.exists():
                 output_path.unlink()
             raise e
-                frame_rickshaw_count = self.detector.count_rickshaws(detection_result)
                 
-                # Update max count
-                max_rickshaw_count = max(max_rickshaw_count, frame_rickshaw_count)
-                
-                # Draw detections on frame
-                annotated_frame = draw_detections(frame, detection_result, self.detector)
-                
-                # Draw count overlay
-                annotated_frame = draw_count_overlay(annotated_frame, frame_rickshaw_count)
-                
-                # Write frame to output video
-                out.write(annotated_frame)
-                
-                frame_count += 1
-                
-                # Print progress every 30 frames
-                if frame_count % 30 == 0:
-                    progress = (frame_count / total_frames) * 100
-                    print(f"   Progress: {frame_count}/{total_frames} frames ({progress:.1f}%)")
-            
-            # Release resources
-            cap.release()
-            out.release()
-            
-            # Remove temporary file
-            if temp_input_path.exists():
-                temp_input_path.unlink()
-            
-            print(f"   Video processing complete: {frame_count} frames processed")
-            print(f"   Max rickshaw count: {max_rickshaw_count}")
-            
-            # Insert record into database
-            insert_detection(
-                file_type="video",
-                file_name=output_filename,
-                rickshaw_count=max_rickshaw_count
-            )
-            
-            # Generate output URL
-            output_url = get_output_url(output_filename, "video")
-            
-            return {
-                "file_name": output_filename,
-                "rickshaw_count": max_rickshaw_count,
-                "output_url": output_url
-            }
             
         except Exception as e:
             # Clean up temporary files on error

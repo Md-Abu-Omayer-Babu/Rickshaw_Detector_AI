@@ -13,6 +13,9 @@ def init_database():
     """
     Initialize the SQLite database and create tables if they don't exist.
     """
+    # Ensure database directory exists
+    settings.database_path.parent.mkdir(parents=True, exist_ok=True)
+    
     conn = sqlite3.connect(settings.database_path)
     cursor = conn.cursor()
     

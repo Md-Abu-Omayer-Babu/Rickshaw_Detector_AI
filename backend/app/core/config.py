@@ -34,10 +34,10 @@ class Settings(BaseSettings):
     # Path Settings
     base_dir: Path = Path(__file__).resolve().parent.parent.parent
     model_path: Path = base_dir / "app" / "model" / "best.pt"
-    outputs_dir: Path = base_dir / "app" / "outputs"
+    outputs_dir: Path = base_dir / "outputs"
     images_output_dir: Path = outputs_dir / "images"
     videos_output_dir: Path = outputs_dir / "videos"
-    database_path: Path = base_dir / "detections.db"
+    database_path: Path = base_dir / "database" / "detections.db"
     logs_dir: Path = base_dir / "logs"
     
     # YOLO Settings
@@ -88,6 +88,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     log_file: str = "rickshaw_detection.log"
+    log_max_bytes: int = 10485760  # 10 MB
+    log_backup_count: int = 5  # Keep 5 backup files
     
     # Analytics Settings
     analytics_cache_ttl: int = 300  # Cache analytics for 5 minutes
@@ -112,14 +114,22 @@ def ensure_directories():
 
 def setup_logging():
     """Configure application logging."""
+    # Ensure logs directory exists
+    settings.logs_dir.mkdir(parents=True, exist_ok=True)
+    
     log_file_path = settings.logs_dir / settings.log_file
     
     # Create logger
     logger = logging.getLogger("rickshaw_detection")
     logger.setLevel(getattr(logging, settings.log_level))
     
-    # File handler
-    file_handler = logging.FileHandler(log_file_path)
+    # File handler with rotation
+    from logging.handlers import RotatingFileHandler
+    file_handler = RotatingFileHandler(
+        log_file_path,
+        maxBytes=settings.log_max_bytes,
+        backupCount=settings.log_backup_count
+    )
     file_handler.setLevel(getattr(logging, settings.log_level))
     file_handler.setFormatter(logging.Formatter(settings.log_format))
     

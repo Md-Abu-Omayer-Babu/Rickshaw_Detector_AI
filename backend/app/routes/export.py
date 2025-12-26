@@ -26,22 +26,22 @@ async def export_logs(
     format: str = Query(
         "csv",
         description="Export format",
-        regex="^(csv|json)$"
+        pattern="^(csv|json)$"
     ),
     start_date: Optional[str] = Query(
         None,
         description="Start date filter (ISO format: YYYY-MM-DD)",
-        example="2024-01-01"
+        examples=["2024-01-01"]
     ),
     end_date: Optional[str] = Query(
         None,
         description="End date filter (ISO format: YYYY-MM-DD)",
-        example="2024-12-31"
+        examples=["2024-12-31"]
     ),
     event_type: Optional[str] = Query(
         None,
         description="Filter by event type",
-        regex="^(entry|exit)$"
+        pattern="^(entry|exit)$"
     ),
     camera_id: Optional[str] = Query(
         None,
@@ -211,7 +211,7 @@ async def export_analytics(
     format: str = Query(
         "csv",
         description="Export format",
-        regex="^(csv|json)$"
+        pattern="^(csv|json)$"
     ),
     days: int = Query(
         30,

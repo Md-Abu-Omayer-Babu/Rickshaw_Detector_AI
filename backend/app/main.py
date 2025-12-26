@@ -49,6 +49,8 @@ async def on_shutdown():
 
 
 # Mount static files for serving processed images and videos
+# Ensure outputs directory exists before mounting
+settings.outputs_dir.mkdir(parents=True, exist_ok=True)
 app.mount(
     "/outputs",
     StaticFiles(directory=str(settings.outputs_dir)),
