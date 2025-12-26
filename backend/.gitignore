@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# FastAPI
+*.db
+*.sqlite3
+detections.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Outputs
+app/outputs/images/*
+app/outputs/videos/*
+!app/outputs/images/.gitkeep
+!app/outputs/videos/.gitkeep
+
+# Model (if not tracking)
+# app/model/best.pt
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
