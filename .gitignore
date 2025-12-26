@@ -339,3 +339,5 @@ storybook-static/
 # Temporary folders
 tmp/
 temp/
+
+trained_model/
