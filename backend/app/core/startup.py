@@ -2,7 +2,7 @@
 Startup module for initializing application components.
 Handles model loading, database setup, and directory creation.
 """
-from app.core.config import settings, ensure_directories
+from app.core.config import settings, ensure_directories, logger
 from app.db.database import init_database
 from app.model.detector import YOLODetector
 
@@ -21,24 +21,30 @@ def startup_event():
     print("=" * 60)
     print(f"🚀 Starting {settings.app_name} v{settings.version}")
     print("=" * 60)
+    logger.info(f"Starting {settings.app_name} v{settings.version}")
     
     # Create output directories
     print("\n📁 Setting up directories...")
     ensure_directories()
+    logger.info("Directories initialized successfully")
     
     # Initialize database
     print("\n💾 Initializing database...")
     init_database()
+    logger.info("Database initialized successfully")
     
     # Load YOLO model (ONCE at startup)
     print("\n🤖 Loading YOLO model...")
     print(f"   Model path: {settings.model_path}")
     print(f"   Device: {settings.yolo_device}")
+    print(f"   Confidence: {settings.yolo_confidence}")
+    print(f"   IoU: {settings.yolo_iou}")
     
     if not settings.model_path.exists():
+        error_msg = f"YOLO model not found at {settings.model_path}"
+        logger.error(error_msg)
         raise FileNotFoundError(
-            f"YOLO model not found at {settings.model_path}. "
-            "Please ensure best.pt is in the app/model/ directory."
+            f"{error_msg}. Please ensure best.pt is in the app/model/ directory."
         )
     
     detector_instance = YOLODetector(
@@ -49,9 +55,20 @@ def startup_event():
     )
     
     print("✓ Model loaded successfully!")
+    logger.info("YOLO model loaded successfully")
+    
+    # Log entry-exit line configuration
+    print(f"\n📏 Entry-Exit Line Configuration:")
+    print(f"   Entry line: {settings.entry_line_start} → {settings.entry_line_end}")
+    if settings.use_separate_lines:
+        print(f"   Exit line: {settings.exit_line_start} → {settings.exit_line_end}")
+    print(f"   Crossing threshold: {settings.crossing_threshold} pixels")
+    logger.info(f"Entry-exit lines configured: {settings.entry_line_start} → {settings.entry_line_end}")
+    
     print("\n" + "=" * 60)
     print("✅ Application startup complete!")
     print("=" * 60 + "\n")
+    logger.info("Application startup complete")
 
 
 def shutdown_event():
@@ -60,8 +77,10 @@ def shutdown_event():
     """
     global detector_instance
     print("\n🛑 Shutting down application...")
+    logger.info("Shutting down application")
     detector_instance = None
     print("✓ Cleanup complete")
+    logger.info("Application shutdown complete")
 
 
 def get_detector() -> YOLODetector:
@@ -75,7 +94,7 @@ def get_detector() -> YOLODetector:
         RuntimeError: If detector is not initialized
     """
     if detector_instance is None:
-        raise RuntimeError(
-            "Detector not initialized. Ensure startup_event() has been called."
-        )
+        error_msg = "Detector not initialized. Ensure startup_event() has been called."
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
     return detector_instance

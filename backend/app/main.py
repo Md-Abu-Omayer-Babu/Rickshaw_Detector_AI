@@ -6,9 +6,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
-from app.core.config import settings
+from app.core.config import settings, logger
 from app.core.startup import startup_event, shutdown_event
-from app.routes import detect_image, detect_video, history
+from app.routes import detect_image, detect_video, history, analytics, detect_cctv, logs, export
 
 
 # Create FastAPI application
@@ -35,13 +35,17 @@ app.add_middleware(
 @app.on_event("startup")
 async def on_startup():
     """Execute startup tasks."""
+    logger.info("Starting FastAPI application")
     startup_event()
+    logger.info("Application startup complete")
 
 
 @app.on_event("shutdown")
 async def on_shutdown():
     """Execute shutdown tasks."""
+    logger.info("Shutting down FastAPI application")
     shutdown_event()
+    logger.info("Application shutdown complete")
 
 
 # Mount static files for serving processed images and videos
@@ -53,9 +57,18 @@ app.mount(
 
 
 # Register API routes
+# Detection routes
 app.include_router(detect_image.router, prefix=settings.api_prefix)
 app.include_router(detect_video.router, prefix=settings.api_prefix)
+app.include_router(detect_cctv.router, prefix=settings.api_prefix)
+
+# Data routes
 app.include_router(history.router, prefix=settings.api_prefix)
+app.include_router(logs.router, prefix=settings.api_prefix)
+
+# Analytics and export routes
+app.include_router(analytics.router, prefix=settings.api_prefix)
+app.include_router(export.router, prefix=settings.api_prefix)
 
 
 # Root endpoint
@@ -71,9 +84,24 @@ async def root():
         "docs": "/docs",
         "redoc": "/redoc",
         "endpoints": {
-            "detect_image": f"{settings.api_prefix}/detect/image",
-            "detect_video": f"{settings.api_prefix}/detect/video",
-            "history": f"{settings.api_prefix}/history"
+            "detection": {
+                "detect_image": f"{settings.api_prefix}/detect/image",
+                "detect_video": f"{settings.api_prefix}/detect/video",
+                "detect_cctv": f"{settings.api_prefix}/cctv/stream"
+            },
+            "data": {
+                "history": f"{settings.api_prefix}/history",
+                "logs": f"{settings.api_prefix}/logs"
+            },
+            "analytics": {
+                "dashboard": f"{settings.api_prefix}/analytics/dashboard",
+                "daily": f"{settings.api_prefix}/analytics/daily",
+                "hourly": f"{settings.api_prefix}/analytics/hourly"
+            },
+            "export": {
+                "logs": f"{settings.api_prefix}/export/logs",
+                "analytics": f"{settings.api_prefix}/export/analytics"
+            }
         }
     }
 
@@ -97,6 +125,7 @@ async def global_exception_handler(request, exc):
     """
     Global exception handler for unhandled errors.
     """
+    logger.error(f"Unhandled exception: {str(exc)}", exc_info=True)
     return JSONResponse(
         status_code=500,
         content={

@@ -4,15 +4,17 @@ Contains all application settings and environment configurations.
 """
 from pydantic_settings import BaseSettings
 from pathlib import Path
+from typing import Tuple
+import logging
 
 
 class Settings(BaseSettings):
     """Application settings and configuration."""
     
     # Application Info
-    app_name: str = "Rickshaw Detection API"
-    version: str = "1.0.0"
-    description: str = "FastAPI backend for detecting rickshaws in images and videos using YOLO"
+    app_name: str = "Smart Rickshaw Entry-Exit Monitoring System"
+    version: str = "2.0.0"
+    description: str = "FastAPI backend for rickshaw detection with entry-exit monitoring using YOLO"
     
     # API Settings
     api_prefix: str = "/api"
@@ -36,6 +38,7 @@ class Settings(BaseSettings):
     images_output_dir: Path = outputs_dir / "images"
     videos_output_dir: Path = outputs_dir / "videos"
     database_path: Path = base_dir / "detections.db"
+    logs_dir: Path = base_dir / "logs"
     
     # YOLO Settings
     yolo_confidence: float = 0.25
@@ -44,6 +47,51 @@ class Settings(BaseSettings):
     
     # Detection Settings
     target_class: str = "rickshaw"  # Class name to detect
+    
+    # Entry-Exit Line Settings
+    # Line is defined as two points: (x1, y1) to (x2, y2)
+    # Coordinates are in percentage (0-100) of frame width/height
+    entry_line_start: Tuple[float, float] = (30.0, 50.0)  # (x%, y%)
+    entry_line_end: Tuple[float, float] = (70.0, 50.0)    # (x%, y%)
+    
+    # Alternative: Define separate entry and exit lines
+    use_separate_lines: bool = False
+    exit_line_start: Tuple[float, float] = (30.0, 60.0)
+    exit_line_end: Tuple[float, float] = (70.0, 60.0)
+    
+    # Counting Settings
+    crossing_threshold: int = 5  # Pixels to consider a crossing
+    min_detection_confidence: float = 0.3  # Minimum confidence for counting
+    track_history_length: int = 30  # Number of frames to keep in tracking history
+    
+    # CCTV / RTSP Settings
+    max_concurrent_streams: int = 4  # Maximum number of simultaneous streams
+    stream_reconnect_attempts: int = 3
+    stream_reconnect_delay: int = 5  # seconds
+    stream_fps_limit: int = 15  # Process max 15 FPS from stream
+    
+    # Camera Configuration (for multiple cameras)
+    cameras: dict = {
+        "camera_1": {
+            "name": "Main Gate",
+            "rtsp_url": "rtsp://admin:password@192.168.1.100:554/stream1",
+            "enabled": False
+        },
+        "camera_2": {
+            "name": "Side Entrance",
+            "rtsp_url": "rtsp://admin:password@192.168.1.101:554/stream1",
+            "enabled": False
+        }
+    }
+    
+    # Logging Settings
+    log_level: str = "INFO"
+    log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    log_file: str = "rickshaw_detection.log"
+    
+    # Analytics Settings
+    analytics_cache_ttl: int = 300  # Cache analytics for 5 minutes
+    peak_hours_window: int = 1  # Hours to group for peak hour calculation
     
     class Config:
         env_file = ".env"
@@ -58,4 +106,34 @@ def ensure_directories():
     """Create necessary directories if they don't exist."""
     settings.images_output_dir.mkdir(parents=True, exist_ok=True)
     settings.videos_output_dir.mkdir(parents=True, exist_ok=True)
-    print(f"✓ Output directories created at {settings.outputs_dir}")
+    settings.logs_dir.mkdir(parents=True, exist_ok=True)
+    print(f"✓ Output and log directories created")
+
+
+def setup_logging():
+    """Configure application logging."""
+    log_file_path = settings.logs_dir / settings.log_file
+    
+    # Create logger
+    logger = logging.getLogger("rickshaw_detection")
+    logger.setLevel(getattr(logging, settings.log_level))
+    
+    # File handler
+    file_handler = logging.FileHandler(log_file_path)
+    file_handler.setLevel(getattr(logging, settings.log_level))
+    file_handler.setFormatter(logging.Formatter(settings.log_format))
+    
+    # Console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(getattr(logging, settings.log_level))
+    console_handler.setFormatter(logging.Formatter(settings.log_format))
+    
+    # Add handlers
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    
+    return logger
+
+
+# Global logger instance
+logger = setup_logging()
