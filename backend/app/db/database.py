@@ -159,20 +159,48 @@ def insert_detection(file_type: str, file_name: str, rickshaw_count: int) -> int
         return record_id
 
 
-def get_all_detections() -> list[dict]:
+def get_all_detections(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    file_type: Optional[str] = None
+) -> list[dict]:
     """
-    Retrieve all detection records from the database.
+    Retrieve detection records from the database with optional filters.
+    
+    Args:
+        start_date: Filter by start date (YYYY-MM-DD)
+        end_date: Filter by end date (YYYY-MM-DD)
+        file_type: Filter by file type ('image' or 'video')
     
     Returns:
         list[dict]: List of detection records
     """
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        
+        # Build query with filters
+        query = """
             SELECT id, file_type, file_name, rickshaw_count, created_at
             FROM detections
-            ORDER BY created_at DESC
-        """)
+            WHERE 1=1
+        """
+        params = []
+        
+        if start_date:
+            query += " AND date(created_at) >= ?"
+            params.append(start_date)
+        
+        if end_date:
+            query += " AND date(created_at) <= ?"
+            params.append(end_date)
+        
+        if file_type:
+            query += " AND file_type = ?"
+            params.append(file_type)
+        
+        query += " ORDER BY created_at DESC"
+        
+        cursor.execute(query, params)
         rows = cursor.fetchall()
         
         # Convert Row objects to dictionaries

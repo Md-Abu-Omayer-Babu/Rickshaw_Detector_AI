@@ -116,8 +116,18 @@ export const testStreamConnection = async (cameraId, rtspUrl) => {
 /**
  * Data APIs
  */
-export const getHistory = async () => {
-  const response = await apiClient.get('/api/history');
+export const getHistory = async (filters = {}) => {
+  const queryParams = new URLSearchParams();
+  
+  if (filters.start_date) queryParams.append('start_date', filters.start_date);
+  if (filters.end_date) queryParams.append('end_date', filters.end_date);
+  if (filters.file_type) queryParams.append('file_type', filters.file_type);
+  
+  const url = queryParams.toString() 
+    ? `/api/history?${queryParams.toString()}`
+    : '/api/history';
+    
+  const response = await apiClient.get(url);
   return response.data;
 };
 
