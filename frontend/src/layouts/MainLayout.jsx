@@ -87,7 +87,7 @@ const MainLayout = () => {
           )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-lg hover:bg-gray-700"
+            className="p-2 rounded-lg hover:bg-gray-700 cursor-pointer"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -114,14 +114,14 @@ const MainLayout = () => {
         </nav>
 
         {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gray-800">
+        {/* <div className="absolute bottom-0 left-0 right-0 p-4 bg-gray-800">
           {sidebarOpen && (
             <div className="text-xs text-gray-400">
               <p className="font-medium">Smart Rickshaw Monitor</p>
               <p>Version 2.0.0</p>
             </div>
           )}
-        </div>
+        </div> */}
       </aside>
 
       {/* Main content */}
