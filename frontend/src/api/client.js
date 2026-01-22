@@ -93,6 +93,42 @@ export const detectVideo = async (file, enableCounting = true, cameraId = 'defau
   return response.data;
 };
 
+/**
+ * Async video detection with live preview support
+ * Returns job_id immediately for streaming
+ */
+export const detectVideoAsync = async (file, enableCounting = true, cameraId = 'default') => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const response = await apiClient.post(
+    `/api/detect/video/async?enable_counting=${enableCounting}&camera_id=${cameraId}`,
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );
+  
+  return response.data;
+};
+
+/**
+ * Get video processing job status
+ */
+export const getJobStatus = async (jobId) => {
+  const response = await apiClient.get(`/api/detect/video/status/${jobId}`);
+  return response.data;
+};
+
+/**
+ * Get MJPEG stream URL for live video preview
+ */
+export const getVideoStreamUrl = (jobId) => {
+  return `${BASE_URL}/api/stream/video/${jobId}`;
+};
+
 export const processCCTVStream = async (cameraId, rtspUrl, duration = 60, cameraName = '') => {
   const response = await apiClient.post('/api/cctv/stream', {
     camera_id: cameraId,

@@ -1,9 +1,9 @@
 /**
  * Video Detection Page - Upload and detect rickshaws in videos
+ * Now supports LIVE PREVIEW during processing
  */
-import { useState } from 'react';
-import { detectVideo } from '../api/client';
-import { getStaticUrl } from '../api/client';
+import {useEffect, useRef, useState } from 'react';
+import { detectVideoAsync, getJobStatus, getVideoStreamUrl, getStaticUrl } from '../api/client';
 import UploadBox from '../components/UploadBox';
 import VideoPlayer from '../components/VideoPlayer';
 import Loader from '../components/Loader';
@@ -15,11 +15,66 @@ const VideoDetection = () => {
   const [error, setError] = useState(null);
   const [enableCounting, setEnableCounting] = useState(true);
   const [cameraId, setCameraId] = useState('default');
+  
+  // Live preview state
+  const [jobId, setJobId] = useState(null);
+  const [jobStatus, setJobStatus] = useState(null);
+  const [showLivePreview, setShowLivePreview] = useState(false);
+  const statusCheckInterval = useRef(null);
+
+  // Cleanup on unmount or when job completes
+  useEffect(() => {
+    return () => {
+      if (statusCheckInterval.current) {
+        clearInterval(statusCheckInterval.current);
+      }
+    };
+  }, []);
+
+  // Poll job status when processing
+  useEffect(() => {
+    if (jobId && loading) {
+      // Check status every 2 seconds
+      statusCheckInterval.current = setInterval(async () => {
+        try {
+          const status = await getJobStatus(jobId);
+          setJobStatus(status);
+          
+          // If completed, fetch final results
+          if (status.status === 'completed') {
+            clearInterval(statusCheckInterval.current);
+            setLoading(false);
+            setShowLivePreview(false);
+            setResult(status.result);
+          }
+          
+          // If failed, show error
+          if (status.status === 'failed') {
+            clearInterval(statusCheckInterval.current);
+            setLoading(false);
+            setShowLivePreview(false);
+            setError(status.error || 'Video processing failed');
+          }
+        } catch (err) {
+          console.error('Error checking job status:', err);
+        }
+      }, 2000);
+      
+      return () => {
+        if (statusCheckInterval.current) {
+          clearInterval(statusCheckInterval.current);
+        }
+      };
+    }
+  }, [jobId, loading]);
 
   const handleFileSelect = (file) => {
     setSelectedFile(file);
     setResult(null);
     setError(null);
+    setJobId(null);
+    setJobStatus(null);
+    setShowLivePreview(false);
   };
 
   const handleDetection = async () => {
@@ -31,12 +86,21 @@ const VideoDetection = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await detectVideo(selectedFile, enableCounting, cameraId);
-      setResult(response);
+      setResult(null);
+      setShowLivePreview(false);
+      
+      // Start async video processing with live preview
+      const response = await detectVideoAsync(selectedFile, enableCounting, cameraId);
+      
+      // Store job ID and enable live preview
+      setJobId(response.job_id);
+      setShowLivePreview(true);
+      
+      console.log('Video processing started:', response);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to process video');
-    } finally {
+      setError(err.response?.data?.detail || 'Failed to start video processing');
       setLoading(false);
+      setShowLivePreview(false);
     }
   };
 
@@ -101,12 +165,58 @@ const VideoDetection = () => {
 
       {loading && (
         <div className="bg-white rounded-lg shadow-md p-8">
-          <Loader size="large" message="Processing video... This may take several minutes." />
-          <div className="mt-4 text-center">
-            <p className="text-sm text-gray-600">
-              Processing time depends on video length. Please be patient.
-            </p>
-          </div>
+          {/* Live Preview Section */}
+          {showLivePreview && jobId && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                Live Processing Preview
+              </h3>
+              
+              {/* MJPEG Stream - Live Preview */}
+              <div className="relative bg-gray-900 rounded-lg overflow-hidden">
+                <img
+                  src={getVideoStreamUrl(jobId)}
+                  alt="Live Processing Preview"
+                  className="w-full h-auto"
+                  onError={(e) => {
+                    console.error('Stream error:', e);
+                    e.target.style.display = 'none';
+                  }}
+                />
+              </div>
+              
+              {/* Progress Bar */}
+              {jobStatus && (
+                <div className="mt-4">
+                  <div className="flex justify-between text-sm text-gray-600 mb-1">
+                    <span>Processing...</span>
+                    <span>{Math.round(jobStatus.progress)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div 
+                      className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                      style={{ width: `${jobStatus.progress}%` }}
+                    ></div>
+                  </div>
+                  <div className="mt-2 text-sm text-gray-600">
+                    Frame {jobStatus.processed_frames} of {jobStatus.total_frames}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Fallback Loader if no live preview yet */}
+          {!showLivePreview && (
+            <>
+              <Loader size="large" message="Starting video processing..." />
+              <div className="mt-4 text-center">
+                <p className="text-sm text-gray-600">
+                  Live preview will appear shortly...
+                </p>
+              </div>
+            </>
+          )}
         </div>
       )}
 
