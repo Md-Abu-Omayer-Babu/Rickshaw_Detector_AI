@@ -1,326 +1,250 @@
+import { useState, useEffect, useRef } from 'react';
+import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+
+const API_BASE_URL = 'http://localhost:8000';
+
 /**
  * LiveVideoPreview Component
  * 
- * Displays live MJPEG stream during video processing, shows progress,
- * and automatically transitions to final processed video when complete.
+ * Displays live MJPEG stream during video processing, then switches to final video when complete.
  * 
- * Props:
- * - jobId: string (required) - The job ID for the video processing task
- * - onComplete: function (optional) - Callback when processing completes with result data
- * - onError: function (optional) - Callback when processing fails with error message
+ * @param {string} jobId - The unique job ID for the video processing task
+ * @param {function} onComplete - Optional callback when processing completes successfully
+ * @param {function} onError - Optional callback when processing fails
  */
-import { useState, useEffect, useRef } from 'react';
-import { getJobStatus, getVideoStreamUrl, getStaticUrl } from '../api/client';
-import Loader from './Loader';
-
 const LiveVideoPreview = ({ jobId, onComplete, onError }) => {
-  const [status, setStatus] = useState(null);
+  const [jobStatus, setJobStatus] = useState(null);
   const [error, setError] = useState(null);
   const [isProcessing, setIsProcessing] = useState(true);
-  const [finalResult, setFinalResult] = useState(null);
-  const statusCheckInterval = useRef(null);
-  const streamImgRef = useRef(null);
+  const [finalVideoUrl, setFinalVideoUrl] = useState(null);
+  const pollIntervalRef = useRef(null);
+  const videoRef = useRef(null);
 
-  // Poll job status
+  // Poll for job status every 2 seconds
   useEffect(() => {
     if (!jobId) return;
 
-    const checkStatus = async () => {
+    const fetchJobStatus = async () => {
       try {
-        const statusData = await getJobStatus(jobId);
-        setStatus(statusData);
-
-        // Handle completion
-        if (statusData.status === 'completed') {
-          setIsProcessing(false);
-          setFinalResult(statusData.result);
-          
-          // Clear interval
-          if (statusCheckInterval.current) {
-            clearInterval(statusCheckInterval.current);
-            statusCheckInterval.current = null;
-          }
-
-          // Call onComplete callback
-          if (onComplete) {
-            onComplete(statusData.result);
-          }
+        const response = await fetch(`${API_BASE_URL}/api/detect/video/status/${jobId}`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch job status: ${response.statusText}`);
         }
 
-        // Handle failure
-        if (statusData.status === 'failed') {
+        const data = await response.json();
+        setJobStatus(data);
+
+        // Check if processing is complete
+        if (data.status === 'completed') {
           setIsProcessing(false);
-          const errorMsg = statusData.error || 'Video processing failed';
-          setError(errorMsg);
+          setFinalVideoUrl(`${API_BASE_URL}/outputs/videos/${jobId}.mp4`);
           
-          // Clear interval
-          if (statusCheckInterval.current) {
-            clearInterval(statusCheckInterval.current);
-            statusCheckInterval.current = null;
+          // Stop polling
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
           }
 
-          // Call onError callback
+          // Trigger completion callback
+          if (onComplete) {
+            onComplete(data);
+          }
+        } else if (data.status === 'failed' || data.status === 'error') {
+          setIsProcessing(false);
+          setError(data.error || 'Video processing failed');
+          
+          // Stop polling
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+          }
+
+          // Trigger error callback
           if (onError) {
-            onError(errorMsg);
+            onError(data.error || 'Video processing failed');
           }
         }
       } catch (err) {
-        console.error('Error checking job status:', err);
-        const errorMsg = err.response?.data?.detail || 'Failed to check processing status';
-        setError(errorMsg);
+        console.error('Error fetching job status:', err);
+        setError(err.message);
+        setIsProcessing(false);
         
-        if (statusCheckInterval.current) {
-          clearInterval(statusCheckInterval.current);
-          statusCheckInterval.current = null;
+        // Stop polling on error
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
         }
 
         if (onError) {
-          onError(errorMsg);
+          onError(err.message);
         }
       }
     };
 
-    // Initial check
-    checkStatus();
+    // Initial fetch
+    fetchJobStatus();
 
-    // Poll every 2 seconds
-    statusCheckInterval.current = setInterval(checkStatus, 2000);
+    // Start polling every 2 seconds
+    pollIntervalRef.current = setInterval(fetchJobStatus, 2000);
 
     // Cleanup on unmount
     return () => {
-      if (statusCheckInterval.current) {
-        clearInterval(statusCheckInterval.current);
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
       }
     };
   }, [jobId, onComplete, onError]);
 
-  // Handle stream image errors
-  const handleStreamError = (e) => {
-    console.error('MJPEG stream error:', e);
-    // Don't hide the image, just log the error
-    // Stream might recover or job might be completing
-  };
+  // Auto-play final video when loaded
+  useEffect(() => {
+    if (finalVideoUrl && videoRef.current) {
+      videoRef.current.load();
+      videoRef.current.play().catch(err => {
+        console.log('Auto-play prevented:', err);
+      });
+    }
+  }, [finalVideoUrl]);
 
-  // Error state
-  if (error && !isProcessing) {
+  if (!jobId) {
     return (
-      <div className="bg-red-50 border-2 border-red-200 rounded-lg p-6">
-        <div className="flex items-center mb-4">
-          <svg 
-            className="w-8 h-8 text-red-500 mr-3" 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={2} 
-              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
-            />
-          </svg>
-          <h3 className="text-lg font-semibold text-red-800">Processing Failed</h3>
-        </div>
-        <p className="text-red-700 mb-4">{error}</p>
-        <div className="text-sm text-red-600">
-          <p>Job ID: <code className="bg-red-100 px-2 py-1 rounded">{jobId}</code></p>
-        </div>
+      <div className="flex items-center justify-center p-8 bg-gray-50 rounded-lg">
+        <p className="text-gray-500">No job ID provided</p>
       </div>
     );
   }
 
-  // Final result - show processed video
-  if (finalResult && !isProcessing) {
+  if (error) {
     return (
-      <div className="space-y-4">
-        {/* Success Banner */}
-        <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <svg 
-              className="w-6 h-6 text-green-500 mr-2" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" 
-              />
-            </svg>
-            <span className="text-green-800 font-semibold">Processing Complete!</span>
-          </div>
-        </div>
-
-        {/* Statistics Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-purple-50 rounded-lg p-4 text-center border border-purple-200">
-            <p className="text-sm text-gray-600 mb-1">Max Detected</p>
-            <p className="text-2xl font-bold text-purple-600">{finalResult.rickshaw_count}</p>
-          </div>
-          <div className="bg-green-50 rounded-lg p-4 text-center border border-green-200">
-            <p className="text-sm text-gray-600 mb-1">Total Entry</p>
-            <p className="text-2xl font-bold text-green-600">{finalResult.total_entry}</p>
-          </div>
-          <div className="bg-red-50 rounded-lg p-4 text-center border border-red-200">
-            <p className="text-sm text-gray-600 mb-1">Total Exit</p>
-            <p className="text-2xl font-bold text-red-600">{finalResult.total_exit}</p>
-          </div>
-          <div className="bg-blue-50 rounded-lg p-4 text-center border border-blue-200">
-            <p className="text-sm text-gray-600 mb-1">Net Count</p>
-            <p className="text-2xl font-bold text-blue-600">{finalResult.net_count}</p>
-          </div>
-        </div>
-
-        {/* Final Processed Video */}
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">Processed Video</h3>
-          <div className="relative bg-black rounded-lg overflow-hidden">
-            <video
-              controls
-              className="w-full h-auto"
-              src={getStaticUrl(finalResult.output_url)}
-              preload="metadata"
-            >
-              Your browser does not support the video tag.
-            </video>
-          </div>
-          <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
-            <span>File: {finalResult.file_name}</span>
-            <a
-              href={getStaticUrl(finalResult.output_url)}
-              download
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-            >
-              Download Video
-            </a>
+      <div className="w-full max-w-4xl mx-auto p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 flex items-start space-x-4">
+          <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-red-900 mb-2">Processing Failed</h3>
+            <p className="text-red-700">{error}</p>
+            <p className="text-sm text-red-600 mt-2">Job ID: {jobId}</p>
           </div>
         </div>
       </div>
     );
   }
 
-  // Processing state - show live MJPEG stream
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <div className="space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h3 className="text-xl font-bold text-gray-800">
-            Live Processing Preview
-          </h3>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-            <span className="text-sm font-medium text-gray-600">LIVE</span>
+    <div className="w-full max-w-4xl mx-auto">
+      {/* Status Header */}
+      <div className="mb-4 bg-white rounded-lg shadow-sm p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-3">
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                <span className="font-semibold text-gray-900">Processing Video...</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <span className="font-semibold text-gray-900">Processing Complete</span>
+              </>
+            )}
           </div>
-        </div>
-
-        {/* MJPEG Stream Display */}
-        <div className="relative bg-gray-900 rounded-lg overflow-hidden min-h-[400px] flex items-center justify-center">
-          {isProcessing && jobId ? (
-            <img
-              ref={streamImgRef}
-              src={getVideoStreamUrl(jobId)}
-              alt="Live Processing Preview"
-              className="w-full h-auto"
-              onError={handleStreamError}
-              style={{ display: 'block' }}
-            />
-          ) : (
-            <Loader size="large" message="Initializing stream..." />
+          {jobStatus && (
+            <span className="text-sm font-medium text-gray-600">
+              {jobStatus.progress}% Complete
+            </span>
           )}
         </div>
 
-        {/* Progress Information */}
-        {status && (
-          <div className="space-y-3">
-            {/* Progress Bar */}
-            <div>
-              <div className="flex items-center justify-between text-sm text-gray-700 mb-2">
-                <span className="font-medium">Processing Progress</span>
-                <span className="font-bold text-blue-600">
-                  {Math.round(status.progress || 0)}%
+        {/* Progress Bar */}
+        {jobStatus && (
+          <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+            <div
+              className="bg-blue-600 h-full rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${jobStatus.progress}%` }}
+            />
+          </div>
+        )}
+
+        {/* Stats */}
+        {jobStatus && (
+          <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div className="flex flex-col">
+              <span className="text-gray-500">Status</span>
+              <span className="font-medium text-gray-900 capitalize">{jobStatus.status}</span>
+            </div>
+            {jobStatus.total_frames > 0 && (
+              <div className="flex flex-col">
+                <span className="text-gray-500">Frames</span>
+                <span className="font-medium text-gray-900">
+                  {jobStatus.processed_frames} / {jobStatus.total_frames}
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500 ease-out relative"
-                  style={{ width: `${status.progress || 0}%` }}
-                >
-                  <div className="absolute inset-0 bg-white opacity-20 animate-pulse"></div>
-                </div>
+            )}
+            {jobStatus.entry_count !== undefined && (
+              <div className="flex flex-col">
+                <span className="text-gray-500">Entries</span>
+                <span className="font-medium text-green-600">{jobStatus.entry_count}</span>
               </div>
-            </div>
-
-            {/* Frame Counter */}
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="flex items-center space-x-2">
-                <svg 
-                  className="w-5 h-5 text-gray-600" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" 
-                  />
-                </svg>
-                <span className="text-sm font-medium text-gray-700">Frames Processed:</span>
+            )}
+            {jobStatus.exit_count !== undefined && (
+              <div className="flex flex-col">
+                <span className="text-gray-500">Exits</span>
+                <span className="font-medium text-red-600">{jobStatus.exit_count}</span>
               </div>
-              <span className="text-sm font-bold text-gray-900">
-                {status.processed_frames || 0} / {status.total_frames || 0}
-              </span>
-            </div>
-
-            {/* Status Info */}
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <div className="flex items-center space-x-1">
-                <svg 
-                  className="w-4 h-4 animate-spin text-blue-600" 
-                  fill="none" 
-                  viewBox="0 0 24 24"
-                >
-                  <circle 
-                    className="opacity-25" 
-                    cx="12" 
-                    cy="12" 
-                    r="10" 
-                    stroke="currentColor" 
-                    strokeWidth="4"
-                  ></circle>
-                  <path 
-                    className="opacity-75" 
-                    fill="currentColor" 
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                <span>Processing video with AI detection...</span>
-              </div>
-            </div>
-
-            {/* Job ID (for debugging) */}
-            <details className="text-xs">
-              <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
-                Technical Details
-              </summary>
-              <div className="mt-2 p-2 bg-gray-100 rounded text-gray-700 font-mono">
-                <p>Job ID: {jobId}</p>
-                <p>Status: {status.status}</p>
-              </div>
-            </details>
+            )}
           </div>
         )}
+      </div>
 
-        {/* Loading state when no status yet */}
-        {!status && isProcessing && (
-          <div className="text-center py-4">
-            <Loader size="medium" message="Fetching processing status..." />
+      {/* Video Display */}
+      <div className="bg-gray-900 rounded-lg overflow-hidden shadow-lg">
+        {isProcessing ? (
+          // MJPEG Live Stream
+          <div className="relative">
+            <img
+              src={`${API_BASE_URL}/api/stream/video/${jobId}`}
+              alt="Live Processing Stream"
+              className="w-full h-auto object-contain"
+              onError={(e) => {
+                console.error('MJPEG stream error');
+                // Keep trying to load the stream
+                setTimeout(() => {
+                  e.target.src = `${API_BASE_URL}/api/stream/video/${jobId}?t=${Date.now()}`;
+                }, 2000);
+              }}
+            />
+            <div className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center space-x-2 shadow-lg">
+              <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+              <span>LIVE</span>
+            </div>
+          </div>
+        ) : finalVideoUrl ? (
+          // Final Processed Video
+          <div className="relative">
+            <video
+              ref={videoRef}
+              className="w-full h-auto"
+              controls
+              loop
+              playsInline
+            >
+              <source src={finalVideoUrl} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            <div className="absolute top-4 left-4 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg">
+              ✓ Processed
+            </div>
+          </div>
+        ) : (
+          // Loading State
+          <div className="flex items-center justify-center h-96 bg-gray-800">
+            <div className="text-center">
+              <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+              <p className="text-gray-300">Loading video...</p>
+            </div>
           </div>
         )}
+      </div>
+
+      {/* Footer Info */}
+      <div className="mt-4 text-center text-sm text-gray-500">
+        Job ID: <span className="font-mono">{jobId}</span>
       </div>
     </div>
   );

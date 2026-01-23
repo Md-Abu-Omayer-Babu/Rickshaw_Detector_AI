@@ -341,3 +341,5 @@ tmp/
 temp/
 
 trained_model/
+
+backend/outputs/*
