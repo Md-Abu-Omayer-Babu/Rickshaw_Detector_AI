@@ -115,7 +115,7 @@ const LiveVideoPreview = ({ jobId, onComplete, onError }) => {
     return (
       <div className="w-full max-w-4xl mx-auto p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 flex items-start space-x-4">
-          <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+          <AlertCircle className="w-6 h-6 text-red-600 mt-0.5" />
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-red-900 mb-2">Processing Failed</h3>
             <p className="text-red-700">{error}</p>
