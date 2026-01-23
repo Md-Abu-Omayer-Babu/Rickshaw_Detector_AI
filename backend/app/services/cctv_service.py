@@ -1,12 +1,14 @@
 """
 CCTV/RTSP stream processing service.
 Handles real-time detection from camera streams with entry/exit counting.
+Supports both batch processing (legacy) and continuous streaming (live preview).
 """
 import cv2
 import numpy as np
 import json
 import time
 import threading
+from datetime import datetime
 from typing import Optional, Dict
 from app.model.detector import YOLODetector
 from app.utils.draw_utils import (
@@ -14,6 +16,7 @@ from app.utils.draw_utils import (
 )
 from app.utils.count_utils import LineCrossingDetector, SimpleTracker
 from app.db.database import log_rickshaw_event
+from app.services.cctv_job_manager import get_cctv_job_manager
 from app.core.config import settings, logger
 
 
@@ -28,7 +31,8 @@ class CCTVStreamProcessor:
         detector: YOLODetector,
         camera_id: str,
         rtsp_url: str,
-        camera_name: str = "Camera"
+        camera_name: str = "Camera",
+        continuous_mode: bool = False  # NEW: Enable continuous streaming mode
     ):
         """
         Initialize CCTV stream processor.
@@ -38,11 +42,13 @@ class CCTVStreamProcessor:
             camera_id: Unique camera identifier
             rtsp_url: RTSP stream URL
             camera_name: Human-readable camera name
+            continuous_mode: If True, enables continuous streaming with live preview
         """
         self.detector = detector
         self.camera_id = camera_id
         self.rtsp_url = rtsp_url
         self.camera_name = camera_name
+        self.continuous_mode = continuous_mode  # NEW: Streaming mode flag
         
         self.is_running = False
         self.cap: Optional[cv2.VideoCapture] = None
@@ -54,7 +60,11 @@ class CCTVStreamProcessor:
         self.entry_count = 0
         self.exit_count = 0
         
-        logger.info(f"CCTVStreamProcessor initialized for camera: {camera_id} ({camera_name})")
+        # NEW: Job manager for live streaming
+        self.job_manager = get_cctv_job_manager() if continuous_mode else None
+        
+        logger.info(f"CCTVStreamProcessor initialized for camera: {camera_id} ({camera_name}), "
+                   f"continuous_mode={continuous_mode}")
     
     def connect(self) -> bool:
         """
@@ -65,10 +75,22 @@ class CCTVStreamProcessor:
         """
         try:
             logger.info(f"Connecting to stream: {self.rtsp_url}")
+            
+            # NEW: Update status to connecting if in continuous mode
+            if self.continuous_mode and self.job_manager:
+                self.job_manager.update_status(self.camera_id, "connecting")
+            
             self.cap = cv2.VideoCapture(self.rtsp_url)
             
             if not self.cap.isOpened():
                 logger.error(f"Failed to open stream: {self.rtsp_url}")
+                
+                # NEW: Update status to error if in continuous mode
+                if self.continuous_mode and self.job_manager:
+                    self.job_manager.update_status(
+                        self.camera_id, "error",
+                        f"Failed to open stream: {self.rtsp_url}"
+                    )
                 return False
             
             # Get stream properties
@@ -77,6 +99,10 @@ class CCTVStreamProcessor:
             fps = int(self.cap.get(cv2.CAP_PROP_FPS))
             
             logger.info(f"Stream connected: {width}x{height} @ {fps}fps")
+            
+            # NEW: Update stream properties if in continuous mode
+            if self.continuous_mode and self.job_manager:
+                self.job_manager.update_stream_properties(self.camera_id, width, height, fps)
             
             # Initialize line crossing detector
             self.line_detector = LineCrossingDetector(
@@ -94,6 +120,13 @@ class CCTVStreamProcessor:
             
         except Exception as e:
             logger.error(f"Error connecting to stream: {str(e)}", exc_info=True)
+            
+            # NEW: Update status to error if in continuous mode
+            if self.continuous_mode and self.job_manager:
+                self.job_manager.update_status(
+                    self.camera_id, "error",
+                    f"Connection error: {str(e)}"
+                )
             return False
     
     def disconnect(self):
@@ -113,16 +146,32 @@ class CCTVStreamProcessor:
         logger.info(f"Attempting to reconnect camera: {self.camera_id}")
         self.disconnect()
         
+        # NEW: Track reconnection attempts in continuous mode
+        if self.continuous_mode and self.job_manager:
+            attempts = self.job_manager.increment_reconnect_attempts(self.camera_id)
+            logger.info(f"Reconnection attempt {attempts}/{settings.stream_reconnect_attempts}")
+        
         for attempt in range(settings.stream_reconnect_attempts):
             logger.info(f"Reconnection attempt {attempt + 1}/{settings.stream_reconnect_attempts}")
             
             if self.connect():
                 logger.info(f"Reconnection successful")
+                
+                # NEW: Reset reconnection attempts in continuous mode
+                if self.continuous_mode and self.job_manager:
+                    self.job_manager.reset_reconnect_attempts(self.camera_id)
                 return True
             
             time.sleep(settings.stream_reconnect_delay)
         
         logger.error(f"Reconnection failed after {settings.stream_reconnect_attempts} attempts")
+        
+        # NEW: Update status to error in continuous mode
+        if self.continuous_mode and self.job_manager:
+            self.job_manager.update_status(
+                self.camera_id, "error",
+                f"Reconnection failed after {settings.stream_reconnect_attempts} attempts"
+            )
         return False
     
     def process_frame(self, frame: np.ndarray) -> Optional[np.ndarray]:
@@ -190,6 +239,16 @@ class CCTVStreamProcessor:
                     )
             
             self.frames_processed += 1
+            
+            # NEW: Update job manager with latest frame in continuous mode
+            if self.continuous_mode and self.job_manager:
+                self.job_manager.update_frame(
+                    self.camera_id,
+                    annotated_frame,
+                    self.entry_count,
+                    self.exit_count
+                )
+            
             return annotated_frame
             
         except Exception as e:
@@ -198,10 +257,10 @@ class CCTVStreamProcessor:
     
     def process_stream(self, duration: Optional[int] = None) -> Dict:
         """
-        Process stream for a specified duration.
+        Process stream for a specified duration or continuously.
         
         Args:
-            duration: Duration in seconds (None for continuous)
+            duration: Duration in seconds (None for continuous streaming)
             
         Returns:
             Dict: Processing statistics
@@ -213,11 +272,26 @@ class CCTVStreamProcessor:
         start_time = time.time()
         last_frame_time = start_time
         
-        logger.info(f"Starting stream processing: camera={self.camera_id}, duration={duration}s")
+        # NEW: Mark as started in continuous mode
+        if self.continuous_mode and self.job_manager:
+            self.job_manager.set_started(self.camera_id)
+        
+        # Determine processing mode
+        if self.continuous_mode:
+            logger.info(f"Starting continuous stream processing: camera={self.camera_id}")
+        else:
+            logger.info(f"Starting batch stream processing: camera={self.camera_id}, duration={duration}s")
         
         try:
             while self.is_running:
-                # Check duration limit
+                # NEW: Check if stopped in continuous mode
+                if self.continuous_mode and self.job_manager:
+                    job = self.job_manager.get_job(self.camera_id)
+                    if job and job.status == "stopped":
+                        logger.info(f"Stream stopped by user: {self.camera_id}")
+                        break
+                
+                # Check duration limit (only for batch mode)
                 if duration and (time.time() - start_time) >= duration:
                     logger.info(f"Duration limit reached: {duration}s")
                     break
@@ -253,6 +327,11 @@ class CCTVStreamProcessor:
         
         finally:
             self.is_running = False
+            
+            # NEW: Update status to stopped in continuous mode
+            if self.continuous_mode and self.job_manager:
+                self.job_manager.update_status(self.camera_id, "stopped")
+            
             self.disconnect()
         
         processing_time = time.time() - start_time
@@ -280,6 +359,7 @@ class CCTVStreamProcessor:
 class CCTVService:
     """
     Service for managing multiple CCTV streams.
+    Supports both batch processing (legacy) and continuous streaming (live preview).
     """
     
     def __init__(self, detector: YOLODetector):
@@ -291,7 +371,187 @@ class CCTVService:
         """
         self.detector = detector
         self.active_streams: Dict[str, CCTVStreamProcessor] = {}
+        self.active_threads: Dict[str, threading.Thread] = {}  # NEW: Track processing threads
+        self.job_manager = get_cctv_job_manager()  # NEW: Job manager for continuous mode
         logger.info("CCTVService initialized")
+    
+    # ========================================
+    # NEW: Continuous Streaming Methods (Live Preview)
+    # ========================================
+    
+    def start_continuous_stream(
+        self,
+        camera_id: str,
+        rtsp_url: str,
+        camera_name: str = "Camera"
+    ) -> Dict:
+        """
+        Start continuous CCTV stream processing with live preview support.
+        Runs in background thread and streams frames via MJPEG.
+        
+        Args:
+            camera_id: Unique camera identifier
+            rtsp_url: RTSP stream URL
+            camera_name: Human-readable camera name
+            
+        Returns:
+            Dict: Immediate response with camera info
+        """
+        # Check if camera already streaming
+        if camera_id in self.active_streams:
+            existing_processor = self.active_streams[camera_id]
+            if existing_processor.is_running:
+                logger.warning(f"Camera {camera_id} is already streaming")
+                raise RuntimeError(f"Camera {camera_id} is already streaming")
+        
+        # Check concurrent stream limit
+        if len(self.active_streams) >= settings.max_concurrent_streams:
+            raise RuntimeError(
+                f"Maximum concurrent streams ({settings.max_concurrent_streams}) reached"
+            )
+        
+        # Create job in job manager
+        self.job_manager.create_job(camera_id, rtsp_url, camera_name)
+        
+        # Create stream processor in continuous mode
+        processor = CCTVStreamProcessor(
+            detector=self.detector,
+            camera_id=camera_id,
+            rtsp_url=rtsp_url,
+            camera_name=camera_name,
+            continuous_mode=True  # Enable continuous streaming
+        )
+        
+        self.active_streams[camera_id] = processor
+        
+        # Start processing in background thread
+        def process_continuous():
+            try:
+                processor.process_stream(duration=None)  # No duration limit
+            except Exception as e:
+                logger.error(f"Error in continuous stream processing: {str(e)}", exc_info=True)
+                self.job_manager.update_status(camera_id, "error", str(e))
+            finally:
+                # Cleanup after stopped
+                if camera_id in self.active_streams:
+                    del self.active_streams[camera_id]
+                if camera_id in self.active_threads:
+                    del self.active_threads[camera_id]
+        
+        thread = threading.Thread(target=process_continuous, daemon=True)
+        thread.start()
+        self.active_threads[camera_id] = thread
+        
+        logger.info(f"Started continuous stream: {camera_id}")
+        
+        return {
+            "success": True,
+            "camera_id": camera_id,
+            "camera_name": camera_name,
+            "status": "connecting",
+            "message": f"Camera {camera_id} started, connecting to stream..."
+        }
+    
+    def stop_continuous_stream(self, camera_id: str) -> Dict:
+        """
+        Stop a continuous CCTV stream.
+        
+        Args:
+            camera_id: Camera identifier
+            
+        Returns:
+            Dict: Stop confirmation
+        """
+        # Check if camera exists
+        job = self.job_manager.get_job(camera_id)
+        if not job:
+            raise RuntimeError(f"Camera {camera_id} not found")
+        
+        # Signal processor to stop
+        if camera_id in self.active_streams:
+            processor = self.active_streams[camera_id]
+            processor.stop()
+        
+        # Update job manager
+        self.job_manager.stop_job(camera_id)
+        
+        logger.info(f"Stopped continuous stream: {camera_id}")
+        
+        return {
+            "success": True,
+            "camera_id": camera_id,
+            "message": f"Camera {camera_id} stopped successfully"
+        }
+    
+    def get_stream_status(self, camera_id: str) -> Dict:
+        """
+        Get the current status of a continuous stream.
+        
+        Args:
+            camera_id: Camera identifier
+            
+        Returns:
+            Dict: Stream status with live counts and metrics
+        """
+        job = self.job_manager.get_job(camera_id)
+        
+        if not job:
+            raise RuntimeError(f"Camera {camera_id} not found")
+        
+        # Calculate uptime
+        uptime = 0.0
+        if job.started_at:
+            uptime = (datetime.now() - job.started_at).total_seconds()
+        
+        return {
+            "success": True,
+            "camera_id": camera_id,
+            "camera_name": job.camera_name,
+            "status": job.status,
+            "entry_count": job.entry_count,
+            "exit_count": job.exit_count,
+            "net_count": job.net_count,
+            "frames_processed": job.frames_processed,
+            "fps": round(job.fps, 2),
+            "uptime": round(uptime, 2),
+            "stream_properties": {
+                "width": job.stream_width,
+                "height": job.stream_height,
+                "fps": job.stream_fps
+            } if job.stream_width > 0 else None,
+            "error_message": job.error_message
+        }
+    
+    def list_active_streams(self) -> Dict:
+        """
+        List all active continuous streams.
+        
+        Returns:
+            Dict: List of active camera streams
+        """
+        all_jobs = self.job_manager.get_all_jobs()
+        
+        streams = []
+        for camera_id, job in all_jobs.items():
+            streams.append({
+                "camera_id": camera_id,
+                "camera_name": job.camera_name,
+                "status": job.status,
+                "entry_count": job.entry_count,
+                "exit_count": job.exit_count,
+                "net_count": job.net_count,
+                "fps": round(job.fps, 2)
+            })
+        
+        return {
+            "success": True,
+            "total_streams": len(streams),
+            "streams": streams
+        }
+    
+    # ========================================
+    # Legacy Batch Processing Method (Preserved)
+    # ========================================
     
     async def start_stream(
         self,
@@ -301,7 +561,8 @@ class CCTVService:
         camera_name: str = "Camera"
     ) -> Dict:
         """
-        Start processing a CCTV stream.
+        Start processing a CCTV stream (LEGACY BATCH MODE).
+        Process for fixed duration and return results.
         
         Args:
             camera_id: Unique camera identifier
@@ -318,12 +579,13 @@ class CCTVService:
                 f"Maximum concurrent streams ({settings.max_concurrent_streams}) reached"
             )
         
-        # Create stream processor
+        # Create stream processor in batch mode (continuous_mode=False)
         processor = CCTVStreamProcessor(
             detector=self.detector,
             camera_id=camera_id,
             rtsp_url=rtsp_url,
-            camera_name=camera_name
+            camera_name=camera_name,
+            continuous_mode=False  # Batch processing mode
         )
         
         self.active_streams[camera_id] = processor

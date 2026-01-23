@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from app.core.config import settings, logger
 from app.core.startup import startup_event, shutdown_event
-from app.routes import detect_image, detect_video, history, analytics, detect_cctv, logs, export, stream_video
+from app.routes import detect_image, detect_video, history, analytics, detect_cctv, logs, export, stream_video, stream_cctv
 
 
 # Create FastAPI application
@@ -66,6 +66,7 @@ app.include_router(detect_cctv.router, prefix=settings.api_prefix)
 
 # Streaming routes (for live video preview)
 app.include_router(stream_video.router, prefix=settings.api_prefix)
+app.include_router(stream_cctv.router, prefix=settings.api_prefix)  # NEW: CCTV streaming
 
 # Data routes
 app.include_router(history.router, prefix=settings.api_prefix)

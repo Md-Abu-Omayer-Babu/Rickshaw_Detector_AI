@@ -150,6 +150,38 @@ export const testStreamConnection = async (cameraId, rtspUrl) => {
 };
 
 /**
+ * NEW: Continuous CCTV streaming APIs
+ */
+export const startCCTVStream = async (cameraId, rtspUrl, cameraName = '') => {
+  const response = await apiClient.post('/api/cctv/start', {
+    camera_id: cameraId,
+    rtsp_url: rtspUrl,
+    camera_name: cameraName || cameraId,
+  });
+  
+  return response.data;
+};
+
+export const stopCCTVStream = async (cameraId) => {
+  const response = await apiClient.post(`/api/cctv/stop/${cameraId}`);
+  return response.data;
+};
+
+export const getCCTVStatus = async (cameraId) => {
+  const response = await apiClient.get(`/api/cctv/status/${cameraId}`);
+  return response.data;
+};
+
+export const getCCTVStreamUrl = (cameraId) => {
+  return `${BASE_URL}/api/stream/cctv/${cameraId}`;
+};
+
+export const listCCTVStreams = async () => {
+  const response = await apiClient.get('/api/cctv/list');
+  return response.data;
+};
+
+/**
  * Data APIs
  */
 export const getHistory = async (filters = {}) => {
