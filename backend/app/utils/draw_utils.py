@@ -123,7 +123,7 @@ def draw_entry_exit_line(
     line_start: Tuple[int, int],
     line_end: Tuple[int, int],
     color: Tuple[int, int, int] = LINE_COLOR_DEFAULT,
-    thickness: int = 3,
+    thickness: int = 8,
     label: str = "Counting Line"
 ) -> np.ndarray:
     output_image = image.copy()
@@ -175,8 +175,8 @@ def draw_entry_exit_counts(
     exit_count: int,
     net_count: int,
     position: Tuple[int, int] = (10, 40),
-    font_scale: float = 0.8,
-    thickness: int = 2
+    font_scale: float = 1.5,
+    thickness: int = 3
 ) -> np.ndarray:
     output_image = image.copy()
     

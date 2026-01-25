@@ -44,8 +44,8 @@ class Settings(BaseSettings):
     target_class: str = "rickshaw"
 
     # Entry-Exit Line Settings (percentages)
-    entry_line_start: Tuple[float, float] = (30.0, 50.0)
-    entry_line_end: Tuple[float, float] = (70.0, 50.0)
+    entry_line_start: Tuple[float, float] = (0.0, 50.0)  # Full width from left edge
+    entry_line_end: Tuple[float, float] = (100.0, 50.0)  # Full width to right edge
 
     # Counting Settings
     crossing_threshold: int = 5
@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     # Video Processing Optimization
     enable_live_preview: bool = False
     preview_update_interval: int = 5  # Update preview every N frames (0 = disabled)
-    frame_skip: int = 5
+    frame_skip: int = 30
     detection_scale_factor: float = 0.75
     use_fast_codec: bool = False
 
