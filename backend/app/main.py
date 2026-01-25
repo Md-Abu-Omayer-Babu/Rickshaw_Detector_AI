@@ -42,8 +42,7 @@ async def on_shutdown():
     logger.info("Application shutdown complete")
 
 
-# Mount static files for serving processed images and videos
-# Ensure outputs directory exists before mounting
+# Mount static files
 settings.outputs_dir.mkdir(parents=True, exist_ok=True)
 app.mount(
     "/outputs",
@@ -52,21 +51,18 @@ app.mount(
 )
 
 
-# Register API routes
-# Detection routes
+# API routes
 app.include_router(detect_image.router, prefix=settings.api_prefix)
 app.include_router(detect_video.router, prefix=settings.api_prefix)
 app.include_router(detect_cctv.router, prefix=settings.api_prefix)
 
 # Streaming routes (for live video preview)
 app.include_router(stream_video.router, prefix=settings.api_prefix)
-app.include_router(stream_cctv.router, prefix=settings.api_prefix)  # NEW: CCTV streaming
+app.include_router(stream_cctv.router, prefix=settings.api_prefix)
 
 # Data routes
 app.include_router(history.router, prefix=settings.api_prefix)
 app.include_router(logs.router, prefix=settings.api_prefix)
-
-# Analytics and export routes
 app.include_router(analytics.router, prefix=settings.api_prefix)
 app.include_router(export.router, prefix=settings.api_prefix)
 
@@ -126,14 +122,3 @@ async def global_exception_handler(request, exc):
         }
     )
 
-
-if __name__ == "__main__":
-    import uvicorn
-    
-    # Run the application
-    uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=settings.debug
-    )

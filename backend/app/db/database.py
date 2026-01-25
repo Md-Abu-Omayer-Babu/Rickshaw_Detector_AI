@@ -12,7 +12,6 @@ def init_database():
     conn = sqlite3.connect(settings.database_path)
     cursor = conn.cursor()
     
-    # Create detections table (legacy compatibility)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS detections (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,7 +22,6 @@ def init_database():
         )
     """)
     
-    # Create rickshaw_logs table for entry/exit tracking
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS rickshaw_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -39,7 +37,6 @@ def init_database():
         )
     """)
     
-    # Create analytics_summary table for cached statistics
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS analytics_summary (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,7 +52,6 @@ def init_database():
         )
     """)
     
-    # Create camera_streams table for RTSP stream management
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS camera_streams (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,7 +65,6 @@ def init_database():
         )
     """)
     
-    # Create indexes for better query performance
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_rickshaw_logs_timestamp 
         ON rickshaw_logs(timestamp)
@@ -94,7 +89,6 @@ def init_database():
     conn.close()
     
     logger.info(f"Database initialized at {settings.database_path}")
-    print(f"✓ Database initialized at {settings.database_path}")
 
 
 @contextmanager

@@ -16,8 +16,6 @@ def startup_event():
     ensure_directories()
     logger.info("Directories initialized successfully")
     
-    # Initialize database
-    print("\nInitializing database...")
     init_database()
     logger.info("Database initialized successfully")
     
@@ -36,7 +34,6 @@ def startup_event():
         device=settings.yolo_device
     )
     
-    print("Model loaded successfully!")
     logger.info("YOLO model loaded successfully")
     
     # Log entry-exit line configuration
@@ -47,10 +44,8 @@ def startup_event():
 
 def shutdown_event():
     global detector_instance
-    print("\nShutting down application...")
     logger.info("Shutting down application")
     detector_instance = None
-    print("Cleanup complete")
     logger.info("Application shutdown complete")
 
 

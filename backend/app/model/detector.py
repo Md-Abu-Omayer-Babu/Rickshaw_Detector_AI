@@ -21,18 +21,9 @@ class YOLODetector:
         self.iou = iou
         self.device = device
         
-        # Load YOLO model
-        print(f"   Loading model from: {model_path}")
         self.model = YOLO(model_path)
-        
-        # Move model to device
         self.model.to(device)
-        
-        # Get class names
         self.class_names = self.model.names
-        print(f"   Model classes: {self.class_names}")
-        print(f"   Confidence threshold: {confidence}")
-        print(f"   IoU threshold: {iou}")
     
     def detect(self, image: np.ndarray) -> DetectionResult:
         # Run inference

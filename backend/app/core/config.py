@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     # YOLO Settings
     yolo_confidence: float = 0.25
     yolo_iou: float = 0.45
-    yolo_device: str = "cpu"  # Change to "cuda" if GPU is available
+    yolo_device: str = "cpu"
 
     # Detection Settings
     target_class: str = "rickshaw"
@@ -46,10 +46,6 @@ class Settings(BaseSettings):
     # Entry-Exit Line Settings (percentages)
     entry_line_start: Tuple[float, float] = (30.0, 50.0)
     entry_line_end: Tuple[float, float] = (70.0, 50.0)
-
-    use_separate_lines: bool = False
-    exit_line_start: Tuple[float, float] = (30.0, 60.0)
-    exit_line_end: Tuple[float, float] = (70.0, 60.0)
 
     # Counting Settings
     crossing_threshold: int = 5
@@ -69,22 +65,12 @@ class Settings(BaseSettings):
     stream_reconnect_delay: int = 5
     stream_fps_limit: int = 15
 
-    # Camera Configuration
-    cameras: Dict[str, Dict] = {
-        "camera_1": {"name": "Main Gate", "rtsp_url": "rtsp://admin:password@192.168.1.100:554/stream1", "enabled": False},
-        "camera_2": {"name": "Side Entrance", "rtsp_url": "rtsp://admin:password@192.168.1.101:554/stream1", "enabled": False}
-    }
-
     # Logging Settings
     log_level: str = "INFO"
     log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     log_file: str = "rickshaw_detection.log"
     log_max_bytes: int = 10 * 1024 * 1024  # 10 MB
     log_backup_count: int = 5
-
-    # Analytics Settings
-    analytics_cache_ttl: int = 300
-    peak_hours_window: int = 1
 
     class Config:
         env_file = ".env"
@@ -100,7 +86,6 @@ def ensure_directories():
     settings.videos_output_dir.mkdir(parents=True, exist_ok=True)
     settings.logs_dir.mkdir(parents=True, exist_ok=True)
     settings.outputs_dir.mkdir(parents=True, exist_ok=True)
-    print(f"Output and log directories created")
 
 
 def setup_logging():

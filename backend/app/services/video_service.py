@@ -65,8 +65,6 @@ class VideoService:
             total_entry = 0
             total_exit = 0
 
-            print(f"Processing video: {total_frames} frames at {fps} FPS")
-
             while True:
                 ret, frame = cap.read()
                 if not ret:
@@ -113,10 +111,6 @@ class VideoService:
                     annotated_frame = draw_count_overlay(annotated_frame, frame_rickshaw_count)
 
                 out.write(annotated_frame)
-
-                if frame_count % 30 == 0:
-                    progress = (frame_count / total_frames) * 100
-                    print(f"Progress: {frame_count}/{total_frames} frames ({progress:.1f}%)")
 
             cap.release()
             out.release()
