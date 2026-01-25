@@ -100,6 +100,8 @@ class VideoService:
                                 crossing_line="entry_line"
                             )
 
+                # Always draw line and counts when counting is enabled
+                if enable_counting and line_detector:
                     entry_count, exit_count, net_count = line_detector.get_counts()
                     total_entry = entry_count
                     total_exit = exit_count
@@ -227,6 +229,8 @@ class VideoService:
                                 crossing_line="entry_line"
                             )
 
+                # Always draw line and counts when counting is enabled
+                if enable_counting and line_detector:
                     entry_count, exit_count, net_count = line_detector.get_counts()
                     total_entry = entry_count
                     total_exit = exit_count
