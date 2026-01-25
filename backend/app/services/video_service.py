@@ -200,6 +200,21 @@ class VideoService:
                 if not ret:
                     break
 
+                # Check for stop signal
+                job = job_manager.get_job(job_id)
+                if job and job.should_stop:
+                    logger.info(f"[Job {job_id}] Stop signal received. Terminating processing.")
+                    break
+                
+                # Check for pause signal
+                while job and job.paused:
+                    import time
+                    time.sleep(0.5)  # Wait while paused
+                    job = job_manager.get_job(job_id)
+                    if job and job.should_stop:
+                        logger.info(f"[Job {job_id}] Stop signal received while paused.")
+                        break
+
                 frame_count += 1  # ✅ increment frame counter
 
                 detection_result = self.detector.detect(frame)
@@ -259,6 +274,15 @@ class VideoService:
 
             if temp_input_path.exists():
                 temp_input_path.unlink()
+
+            # Check if stopped early
+            job = job_manager.get_job(job_id)
+            if job and job.should_stop:
+                logger.info(f"[Job {job_id}] Processing stopped by user")
+                # Clean up output file if stopped
+                if output_path.exists():
+                    output_path.unlink()
+                return
 
             insert_detection(
                 file_type="video",

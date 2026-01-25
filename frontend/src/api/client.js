@@ -123,6 +123,30 @@ export const getJobStatus = async (jobId) => {
 };
 
 /**
+ * Pause video processing job
+ */
+export const pauseVideoJob = async (jobId) => {
+  const response = await apiClient.post(`/api/detect/video/pause/${jobId}`);
+  return response.data;
+};
+
+/**
+ * Resume video processing job
+ */
+export const resumeVideoJob = async (jobId) => {
+  const response = await apiClient.post(`/api/detect/video/resume/${jobId}`);
+  return response.data;
+};
+
+/**
+ * Stop video processing job
+ */
+export const stopVideoJob = async (jobId) => {
+  const response = await apiClient.post(`/api/detect/video/stop/${jobId}`);
+  return response.data;
+};
+
+/**
  * Get MJPEG stream URL for live video preview
  */
 export const getVideoStreamUrl = (jobId) => {

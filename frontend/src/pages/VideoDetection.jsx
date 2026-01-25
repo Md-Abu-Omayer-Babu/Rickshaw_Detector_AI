@@ -1,12 +1,13 @@
 /**
  * Video Detection Page - Upload and detect rickshaws in videos
- * Now supports LIVE PREVIEW during processing
+ * Now supports LIVE PREVIEW during processing with STOP, PAUSE, RESUME controls
  */
 import {useEffect, useRef, useState } from 'react';
-import { detectVideoAsync, getJobStatus, getVideoStreamUrl, getStaticUrl } from '../api/client';
+import { detectVideoAsync, getJobStatus, getVideoStreamUrl, getStaticUrl, pauseVideoJob, resumeVideoJob, stopVideoJob } from '../api/client';
 import UploadBox from '../components/UploadBox';
 import VideoPlayer from '../components/VideoPlayer';
 import Loader from '../components/Loader';
+import { Pause, Play, Square } from 'lucide-react';
 
 const VideoDetection = () => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -21,6 +22,7 @@ const VideoDetection = () => {
   const [jobStatus, setJobStatus] = useState(null);
   const [showLivePreview, setShowLivePreview] = useState(false);
   const [streamRetry, setStreamRetry] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const statusCheckInterval = useRef(null);
 
   // Cleanup on unmount or when job completes
@@ -39,7 +41,7 @@ const VideoDetection = () => {
       statusCheckInterval.current = setInterval(async () => {
         try {
           const status = await getJobStatus(jobId);
-          setJobStatus(status);
+          setIsPaused(status.status === 'paused');
           
           // If completed, fetch final results
           if (status.status === 'completed') {
@@ -47,6 +49,14 @@ const VideoDetection = () => {
             setLoading(false);
             setShowLivePreview(false);
             setResult(status.result);
+          }
+          
+          // If stopped, clear everything
+          if (status.status === 'stopped') {
+            clearInterval(statusCheckInterval.current);
+            setLoading(false);
+            setShowLivePreview(false);
+            setError('Video processing was stopped');
           }
           
           // If failed, show error
@@ -76,6 +86,48 @@ const VideoDetection = () => {
     setJobId(null);
     setJobStatus(null);
     setShowLivePreview(false);
+    setIsPaused(false);
+  };
+
+  const handlePause = async () => {
+    if (!jobId) return;
+    try {
+      await pauseVideoJob(jobId);
+      setIsPaused(true);
+    } catch (err) {
+      console.error('Error pausing job:', err);
+      setError('Failed to pause processing');
+    }
+  };
+
+  const handleResume = async () => {
+    if (!jobId) return;
+    try {
+      await resumeVideoJob(jobId);
+      setIsPaused(false);
+    } catch (err) {
+      console.error('Error resuming job:', err);
+      setError('Failed to resume processing');
+    }
+  };
+
+  const handleStop = async () => {
+    if (!jobId) return;
+    try {
+      await stopVideoJob(jobId);
+      if (statusCheckInterval.current) {
+        clearInterval(statusCheckInterval.current);
+      }
+      setLoading(false);
+      setShowLivePreview(false);
+      setJobId(null);
+      setJobStatus(null);
+      setIsPaused(false);
+      setError('Processing stopped by user');
+    } catch (err) {
+      console.error('Error stopping job:', err);
+      setError('Failed to stop processing');
+    }
   };
 
   const handleDetection = async () => {
@@ -188,18 +240,27 @@ const VideoDetection = () => {
                     }
                   }}
                 />
+                {/* Paused Overlay */}
+                {isPaused && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                    <div className="text-center">
+                      <Pause className="w-16 h-16 text-white mx-auto mb-2" />
+                      <p className="text-white text-xl font-semibold">Processing Paused</p>
+                    </div>
+                  </div>
+                )}
               </div>
               
               {/* Progress Bar */}
               {jobStatus && (
                 <div className="mt-4">
                   <div className="flex justify-between text-sm text-gray-600 mb-1">
-                    <span>Processing...</span>
+                    <span>{isPaused ? 'Paused' : 'Processing...'}</span>
                     <span>{Math.round(jobStatus.progress)}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
                     <div 
-                      className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                      className={`h-2.5 rounded-full transition-all duration-300 ${isPaused ? 'bg-yellow-500' : 'bg-blue-600'}`}
                       style={{ width: `${jobStatus.progress}%` }}
                     ></div>
                   </div>
@@ -208,6 +269,34 @@ const VideoDetection = () => {
                   </div>
                 </div>
               )}
+
+              {/* Control Buttons */}
+              <div className="mt-4 flex gap-3 justify-center">
+                {!isPaused ? (
+                  <button
+                    onClick={handlePause}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium shadow-md"
+                  >
+                    <Pause className="w-5 h-5" />
+                    Pause
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleResume}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium shadow-md"
+                  >
+                    <Play className="w-5 h-5" />
+                    Resume
+                  </button>
+                )}
+                <button
+                  onClick={handleStop}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium shadow-md"
+                >
+                  <Square className="w-5 h-5" />
+                  Stop
+                </button>
+              </div>
             </div>
           )}
           

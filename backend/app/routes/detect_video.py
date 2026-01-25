@@ -175,3 +175,78 @@ async def get_job_status(job_id: str):
             status_code=500,
             detail=f"Error processing video: {str(e)}"
         )
+
+
+@router.post(
+    "/video/pause/{job_id}",
+    summary="Pause video processing",
+    description="Pause a running video processing job."
+)
+async def pause_job(job_id: str):
+    try:
+        job_manager = get_job_manager()
+        success = job_manager.pause_job(job_id)
+        
+        if not success:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot pause job: {job_id}. Job may not exist or not in processing state."
+            )
+        
+        return {"success": True, "message": f"Job {job_id} paused"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error pausing job: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post(
+    "/video/resume/{job_id}",
+    summary="Resume video processing",
+    description="Resume a paused video processing job."
+)
+async def resume_job(job_id: str):
+    try:
+        job_manager = get_job_manager()
+        success = job_manager.resume_job(job_id)
+        
+        if not success:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot resume job: {job_id}. Job may not exist or not in paused state."
+            )
+        
+        return {"success": True, "message": f"Job {job_id} resumed"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error resuming job: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post(
+    "/video/stop/{job_id}",
+    summary="Stop video processing",
+    description="Stop a running or paused video processing job."
+)
+async def stop_job(job_id: str):
+    try:
+        job_manager = get_job_manager()
+        success = job_manager.stop_job(job_id)
+        
+        if not success:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot stop job: {job_id}. Job may not exist or already completed."
+            )
+        
+        return {"success": True, "message": f"Job {job_id} stopped"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error stopping job: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))

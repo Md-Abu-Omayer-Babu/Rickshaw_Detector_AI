@@ -11,13 +11,15 @@ from app.core.config import logger
 @dataclass
 class VideoJobState:
     job_id: str
-    status: str  # "processing", "completed", "failed"
+    status: str  # "processing", "paused", "completed", "failed", "stopped"
     progress: float  # 0.0 to 100.0
     total_frames: int
     processed_frames: int
     latest_frame: Optional[np.ndarray] = None  # Latest processed frame for streaming
     latest_frame_lock: threading.Lock = field(default_factory=threading.Lock)
     error_message: Optional[str] = None
+    paused: bool = False
+    should_stop: bool = False
     
     # Results (populated when completed)
     output_filename: Optional[str] = None
@@ -98,6 +100,34 @@ class VideoJobManager:
             job.error_message = error_message
             job.completed_at = datetime.now()
             logger.error(f"Job failed: {job_id} - {error_message}")
+    
+    def pause_job(self, job_id: str) -> bool:
+        job = self.get_job(job_id)
+        if job and job.status == "processing":
+            job.paused = True
+            job.status = "paused"
+            logger.info(f"Job paused: {job_id}")
+            return True
+        return False
+    
+    def resume_job(self, job_id: str) -> bool:
+        job = self.get_job(job_id)
+        if job and job.status == "paused":
+            job.paused = False
+            job.status = "processing"
+            logger.info(f"Job resumed: {job_id}")
+            return True
+        return False
+    
+    def stop_job(self, job_id: str) -> bool:
+        job = self.get_job(job_id)
+        if job and job.status in ["processing", "paused"]:
+            job.should_stop = True
+            job.status = "stopped"
+            job.completed_at = datetime.now()
+            logger.info(f"Job stopped: {job_id}")
+            return True
+        return False
     
     def delete_job(self, job_id: str):
         with self._jobs_lock:
