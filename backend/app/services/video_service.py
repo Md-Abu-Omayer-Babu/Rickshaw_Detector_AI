@@ -246,7 +246,8 @@ class VideoService:
                     logger.info(f"[Job {job_id}] Progress: {frame_count}/{total_frames} ({progress}%)")
 
                 # Optional live preview throttling - update_frame also updates progress
-                if settings.preview_update_interval and frame_count % settings.preview_update_interval == 0:
+                # Always update first frame to start stream immediately
+                if settings.preview_update_interval and (frame_count == 1 or frame_count % settings.preview_update_interval == 0):
                     job_manager.update_frame(job_id, annotated_frame, frame_count)
 
             cap.release()

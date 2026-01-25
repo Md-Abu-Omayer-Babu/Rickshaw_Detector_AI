@@ -20,6 +20,7 @@ const VideoDetection = () => {
   const [jobId, setJobId] = useState(null);
   const [jobStatus, setJobStatus] = useState(null);
   const [showLivePreview, setShowLivePreview] = useState(false);
+  const [streamRetry, setStreamRetry] = useState(0);
   const statusCheckInterval = useRef(null);
 
   // Cleanup on unmount or when job completes
@@ -173,14 +174,18 @@ const VideoDetection = () => {
               </h3>
               
               {/* MJPEG Stream - Live Preview */}
-              <div className="relative bg-gray-900 rounded-lg overflow-hidden">
+              <div className="relative bg-gray-900 rounded-lg overflow-hidden min-h-[300px] flex items-center justify-center">
                 <img
-                  src={getVideoStreamUrl(jobId)}
+                  key={streamRetry}
+                  src={`${getVideoStreamUrl(jobId)}?t=${streamRetry}`}
                   alt="Live Processing Preview"
                   className="w-full h-auto"
                   onError={(e) => {
                     console.error('Stream error:', e);
-                    e.target.style.display = 'none';
+                    // Retry connection after 3 seconds if still processing
+                    if (loading) {
+                      setTimeout(() => setStreamRetry(prev => prev + 1), 3000);
+                    }
                   }}
                 />
               </div>

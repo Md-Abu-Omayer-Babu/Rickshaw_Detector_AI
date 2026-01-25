@@ -31,11 +31,15 @@ async def stream_video(job_id: str):
         def generate_mjpeg():
             last_frame_data = None
             no_frame_count = 0
-            max_no_frame_attempts = 100  # Max attempts to wait for first frame
+            max_no_frame_attempts = 300  # Max attempts to wait for first frame (30 seconds)
             
             while True:
                 # Get current job state
-                current_job = job_manager.get_job(job_id)
+                try:
+                    current_job = job_manager.get_job(job_id)
+                except Exception as e:
+                    logger.error(f"[Stream {job_id}] Error accessing job manager: {e}")
+                    break
                 
                 if not current_job:
                     logger.warning(f"[Stream {job_id}] Job no longer exists")
@@ -46,20 +50,27 @@ async def stream_video(job_id: str):
                 
                 if frame is not None:
                     # Encode frame as JPEG
-                    ret, jpeg = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
-                    
-                    if ret:
-                        frame_data = jpeg.tobytes()
+                    try:
+                        ret, jpeg = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
                         
-                        # Only send if frame has changed (optimization)
-                        if frame_data != last_frame_data:
-                            last_frame_data = frame_data
+                        if ret:
+                            frame_data = jpeg.tobytes()
                             
-                            # Yield frame in MJPEG format
-                            yield (b'--frame\r\n'
-                                   b'Content-Type: image/jpeg\r\n\r\n' + frame_data + b'\r\n')
-                            
-                            no_frame_count = 0  # Reset counter when we get a frame
+                            # Only send if frame has changed (optimization)
+                            if frame_data != last_frame_data:
+                                last_frame_data = frame_data
+                                
+                                # Yield frame in MJPEG format
+                                yield (b'--frame\r\n'
+                                       b'Content-Type: image/jpeg\r\n'
+                                       b'Content-Length: ' + str(len(frame_data)).encode() + b'\r\n\r\n' + 
+                                       frame_data + b'\r\n')
+                                
+                                no_frame_count = 0  # Reset counter when we get a frame
+                        else:
+                            logger.warning(f"[Stream {job_id}] Failed to encode frame")
+                    except Exception as e:
+                        logger.error(f"[Stream {job_id}] Error encoding frame: {e}")
                 else:
                     # No frame available yet - wait for processing to start
                     no_frame_count += 1
