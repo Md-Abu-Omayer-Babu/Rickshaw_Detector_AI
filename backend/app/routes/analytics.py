@@ -1,7 +1,3 @@
-"""
-Analytics endpoint for dashboard statistics.
-Provides entry/exit counts, trends, and peak hour analysis.
-"""
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 from datetime import datetime, timedelta
@@ -29,18 +25,6 @@ router = APIRouter(prefix="/analytics", tags=["Analytics"])
 async def get_dashboard(
     camera_id: str = Query("default", description="Camera ID to filter by")
 ):
-    """
-    Get comprehensive dashboard analytics.
-    
-    - **camera_id**: Filter by specific camera (default: 'default')
-    
-    Returns:
-    - Total entry/exit counts (all time)
-    - Today's entry/exit counts
-    - Hourly distribution for today
-    - Peak hour information
-    - Daily trend (last 7 days)
-    """
     try:
         logger.info(f"Fetching dashboard analytics for camera: {camera_id}")
         
@@ -125,17 +109,6 @@ async def get_daily_stats(
     date: str = Query(..., description="Date in YYYY-MM-DD format"),
     camera_id: str = Query("default", description="Camera ID to filter by")
 ):
-    """
-    Get entry/exit counts for a specific date.
-    
-    - **date**: Date in YYYY-MM-DD format
-    - **camera_id**: Filter by specific camera
-    
-    Returns:
-    - Entry count for the date
-    - Exit count for the date
-    - Net count
-    """
     try:
         # Validate date format
         datetime.strptime(date, "%Y-%m-%d")
@@ -170,15 +143,6 @@ async def get_hourly_stats(
     date: str = Query(..., description="Date in YYYY-MM-DD format"),
     camera_id: str = Query("default", description="Camera ID to filter by")
 ):
-    """
-    Get hourly distribution for a specific date.
-    
-    - **date**: Date in YYYY-MM-DD format
-    - **camera_id**: Filter by specific camera
-    
-    Returns:
-    - Hourly breakdown of entry and exit counts
-    """
     try:
         # Validate date format
         datetime.strptime(date, "%Y-%m-%d")
@@ -210,16 +174,6 @@ async def get_hourly_stats(
 async def get_summary(
     camera_id: Optional[str] = Query(None, description="Camera ID (optional)")
 ):
-    """
-    Get summary statistics.
-    
-    - **camera_id**: Optional camera filter
-    
-    Returns:
-    - Total counts
-    - Today's counts
-    - Active cameras (if applicable)
-    """
     try:
         target_camera = camera_id or "default"
         logger.info(f"Fetching summary for camera: {target_camera}")

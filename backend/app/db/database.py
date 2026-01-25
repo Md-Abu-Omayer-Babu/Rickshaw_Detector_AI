@@ -1,7 +1,3 @@
-"""
-Database configuration and connection management.
-Handles SQLite database initialization and connection pooling.
-"""
 import sqlite3
 from contextlib import contextmanager
 from typing import Generator, Optional
@@ -10,9 +6,6 @@ from app.core.config import settings, logger
 
 
 def init_database():
-    """
-    Initialize the SQLite database and create tables if they don't exist.
-    """
     # Ensure database directory exists
     settings.database_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -106,19 +99,6 @@ def init_database():
 
 @contextmanager
 def get_db_connection() -> Generator[sqlite3.Connection, None, None]:
-    """
-    Context manager for database connections.
-    Ensures proper connection cleanup.
-    
-    Yields:
-        sqlite3.Connection: Database connection
-        
-    Example:
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM detections")
-            results = cursor.fetchall()
-    """
     conn = sqlite3.connect(settings.database_path)
     conn.row_factory = sqlite3.Row  # Enable column access by name
     try:
@@ -132,22 +112,7 @@ def get_db_connection() -> Generator[sqlite3.Connection, None, None]:
         conn.close()
 
 
-# ============================================================
-# Legacy Functions (for backward compatibility)
-# ============================================================
-
 def insert_detection(file_type: str, file_name: str, rickshaw_count: int) -> int:
-    """
-    Insert a new detection record into the database.
-    
-    Args:
-        file_type: Type of file ('image' or 'video')
-        file_name: Name of the processed file
-        rickshaw_count: Number of rickshaws detected
-        
-    Returns:
-        int: ID of the inserted record
-    """
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -164,17 +129,6 @@ def get_all_detections(
     end_date: Optional[str] = None,
     file_type: Optional[str] = None
 ) -> list[dict]:
-    """
-    Retrieve detection records from the database with optional filters.
-    
-    Args:
-        start_date: Filter by start date (YYYY-MM-DD)
-        end_date: Filter by end date (YYYY-MM-DD)
-        file_type: Filter by file type ('image' or 'video')
-    
-    Returns:
-        list[dict]: List of detection records
-    """
     with get_db_connection() as conn:
         cursor = conn.cursor()
         
@@ -207,10 +161,6 @@ def get_all_detections(
         return [dict(row) for row in rows]
 
 
-# ============================================================
-# Entry-Exit Logging Functions
-# ============================================================
-
 def log_rickshaw_event(
     event_type: str,
     confidence: float,
@@ -221,22 +171,6 @@ def log_rickshaw_event(
     crossing_line: Optional[str] = None,
     notes: Optional[str] = None
 ) -> int:
-    """
-    Log a rickshaw entry or exit event.
-    
-    Args:
-        event_type: 'entry' or 'exit'
-        confidence: Detection confidence score
-        camera_id: Camera identifier
-        rickshaw_id: Unique rickshaw tracking ID
-        frame_number: Frame number in video
-        bounding_box: Bounding box coordinates as JSON string
-        crossing_line: Line that was crossed
-        notes: Additional notes
-        
-    Returns:
-        int: ID of the inserted log record
-    """
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""
@@ -258,19 +192,6 @@ def get_rickshaw_logs(
     camera_id: Optional[str] = None,
     limit: int = 1000
 ) -> list[dict]:
-    """
-    Retrieve rickshaw event logs with optional filters.
-    
-    Args:
-        start_date: Filter by start date (YYYY-MM-DD)
-        end_date: Filter by end date (YYYY-MM-DD)
-        event_type: Filter by event type ('entry' or 'exit')
-        camera_id: Filter by camera ID
-        limit: Maximum number of records to return
-        
-    Returns:
-        list[dict]: List of log records
-    """
     with get_db_connection() as conn:
         cursor = conn.cursor()
         
@@ -302,21 +223,7 @@ def get_rickshaw_logs(
         return [dict(row) for row in rows]
 
 
-# ============================================================
-# Analytics Functions
-# ============================================================
-
 def get_daily_counts(date: str, camera_id: str = "default") -> dict:
-    """
-    Get entry/exit counts for a specific date.
-    
-    Args:
-        date: Date in YYYY-MM-DD format
-        camera_id: Camera identifier
-        
-    Returns:
-        dict: Dictionary with entry_count, exit_count, net_count
-    """
     with get_db_connection() as conn:
         cursor = conn.cursor()
         
@@ -345,16 +252,6 @@ def get_daily_counts(date: str, camera_id: str = "default") -> dict:
 
 
 def get_hourly_distribution(date: str, camera_id: str = "default") -> list[dict]:
-    """
-    Get hourly distribution of rickshaw events.
-    
-    Args:
-        date: Date in YYYY-MM-DD format
-        camera_id: Camera identifier
-        
-    Returns:
-        list[dict]: List of hourly counts
-    """
     with get_db_connection() as conn:
         cursor = conn.cursor()
         
@@ -374,15 +271,6 @@ def get_hourly_distribution(date: str, camera_id: str = "default") -> list[dict]
 
 
 def get_total_counts(camera_id: str = "default") -> dict:
-    """
-    Get total entry/exit counts across all time.
-    
-    Args:
-        camera_id: Camera identifier
-        
-    Returns:
-        dict: Dictionary with total counts
-    """
     with get_db_connection() as conn:
         cursor = conn.cursor()
         

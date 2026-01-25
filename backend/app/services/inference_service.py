@@ -1,7 +1,3 @@
-"""
-Inference service for image detection.
-Handles the business logic for processing images with YOLO.
-"""
 import cv2
 import numpy as np
 from pathlib import Path
@@ -14,27 +10,10 @@ from app.core.config import settings
 
 
 class InferenceService:
-    """Service for running inference on images."""
-    
     def __init__(self, detector: YOLODetector):
-        """
-        Initialize inference service.
-        
-        Args:
-            detector: YOLODetector instance
-        """
         self.detector = detector
     
     async def process_image(self, file: UploadFile) -> dict:
-        """
-        Process an uploaded image file.
-        
-        Args:
-            file: Uploaded image file
-            
-        Returns:
-            dict: Detection results with file info and rickshaw count
-        """
         # Generate unique filename
         output_filename = generate_unique_filename(file.filename)
         

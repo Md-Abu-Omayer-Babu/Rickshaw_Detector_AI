@@ -1,7 +1,3 @@
-"""
-Video job manager for handling background video processing with live streaming.
-Stores job state in memory for live preview during processing.
-"""
 import threading
 import time
 import cv2
@@ -14,7 +10,6 @@ from app.core.config import logger
 
 @dataclass
 class VideoJobState:
-    """Represents the state of a video processing job."""
     job_id: str
     status: str  # "processing", "completed", "failed"
     progress: float  # 0.0 to 100.0
@@ -37,13 +32,7 @@ class VideoJobState:
 
 
 class VideoJobManager:
-    """
-    Manages video processing jobs in memory.
-    Provides thread-safe access to job states for live streaming.
-    """
-    
     def __init__(self):
-        """Initialize the job manager."""
         self._jobs: Dict[str, VideoJobState] = {}
         self._jobs_lock = threading.Lock()
         self._cleanup_thread = None
@@ -54,16 +43,6 @@ class VideoJobManager:
         logger.info("VideoJobManager initialized")
     
     def create_job(self, job_id: str, total_frames: int) -> VideoJobState:
-        """
-        Create a new job state.
-        
-        Args:
-            job_id: Unique job identifier
-            total_frames: Total number of frames in the video
-            
-        Returns:
-            VideoJobState: Created job state
-        """
         with self._jobs_lock:
             job_state = VideoJobState(
                 job_id=job_id,
@@ -77,28 +56,10 @@ class VideoJobManager:
             return job_state
     
     def get_job(self, job_id: str) -> Optional[VideoJobState]:
-        """
-        Get job state by ID.
-        
-        Args:
-            job_id: Job identifier
-            
-        Returns:
-            VideoJobState or None if not found
-        """
         with self._jobs_lock:
             return self._jobs.get(job_id)
     
     def update_frame(self, job_id: str, frame: np.ndarray, frame_number: int):
-        """
-        Update the latest processed frame for a job.
-        Thread-safe method to update the frame that will be streamed.
-        
-        Args:
-            job_id: Job identifier
-            frame: Processed frame (numpy array)
-            frame_number: Current frame number
-        """
         job = self.get_job(job_id)
         if job:
             with job.latest_frame_lock:
@@ -110,16 +71,6 @@ class VideoJobManager:
                     job.progress = (frame_number / job.total_frames) * 100.0
     
     def get_latest_frame(self, job_id: str) -> Optional[np.ndarray]:
-        """
-        Get the latest processed frame for streaming.
-        Thread-safe method.
-        
-        Args:
-            job_id: Job identifier
-            
-        Returns:
-            Latest frame as numpy array or None
-        """
         job = self.get_job(job_id)
         if job and job.latest_frame is not None:
             with job.latest_frame_lock:
@@ -127,13 +78,6 @@ class VideoJobManager:
         return None
     
     def mark_completed(self, job_id: str, result: dict):
-        """
-        Mark a job as completed with results.
-        
-        Args:
-            job_id: Job identifier
-            result: Processing results
-        """
         job = self.get_job(job_id)
         if job:
             job.status = "completed"
@@ -148,13 +92,6 @@ class VideoJobManager:
             logger.info(f"Job completed: {job_id}")
     
     def mark_failed(self, job_id: str, error_message: str):
-        """
-        Mark a job as failed.
-        
-        Args:
-            job_id: Job identifier
-            error_message: Error description
-        """
         job = self.get_job(job_id)
         if job:
             job.status = "failed"
@@ -163,19 +100,12 @@ class VideoJobManager:
             logger.error(f"Job failed: {job_id} - {error_message}")
     
     def delete_job(self, job_id: str):
-        """
-        Delete a job from memory.
-        
-        Args:
-            job_id: Job identifier
-        """
         with self._jobs_lock:
             if job_id in self._jobs:
                 del self._jobs[job_id]
                 logger.info(f"Deleted job: {job_id}")
     
     def _start_cleanup_thread(self):
-        """Start background thread to cleanup old completed jobs."""
         def cleanup_old_jobs():
             while self._running:
                 try:
@@ -202,7 +132,6 @@ class VideoJobManager:
         self._cleanup_thread.start()
     
     def shutdown(self):
-        """Shutdown the job manager and cleanup thread."""
         self._running = False
         logger.info("VideoJobManager shutdown")
 
@@ -212,12 +141,6 @@ _job_manager: Optional[VideoJobManager] = None
 
 
 def get_job_manager() -> VideoJobManager:
-    """
-    Get the global job manager instance.
-    
-    Returns:
-        VideoJobManager instance
-    """
     global _job_manager
     if _job_manager is None:
         _job_manager = VideoJobManager()

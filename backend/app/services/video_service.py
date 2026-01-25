@@ -1,7 +1,3 @@
-"""
-Video processing service for video detection.
-Handles the business logic for processing videos frame by frame with YOLO.
-"""
 import cv2
 import numpy as np
 import json
@@ -20,8 +16,6 @@ from app.services.video_job_manager import get_job_manager
 
 
 class VideoService:
-    """Service for processing videos with entry/exit counting."""
-
     def __init__(self, detector: YOLODetector):
         self.detector = detector
 
@@ -31,7 +25,6 @@ class VideoService:
         enable_counting: bool = True,
         camera_id: str = "default"
     ) -> dict:
-        """Process uploaded video frame by frame."""
         logger.info(f"Starting video processing: {file.filename}, counting={enable_counting}")
 
         output_filename = generate_unique_filename(file.filename)
@@ -168,7 +161,6 @@ class VideoService:
         enable_counting: bool = True,
         camera_id: str = "default"
     ):
-        """Process video in background with live frame updates for streaming."""
         job_manager = get_job_manager()
         output_path = settings.videos_output_dir / output_filename
 

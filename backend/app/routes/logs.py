@@ -1,7 +1,3 @@
-"""
-Rickshaw logs endpoint.
-Provides access to entry/exit event logs with filtering options.
-"""
 from fastapi import APIRouter, HTTPException, Query
 from datetime import datetime
 from typing import Optional, List
@@ -57,23 +53,6 @@ async def get_logs(
         description="Number of records to skip"
     )
 ):
-    """
-    Get rickshaw event logs with filters.
-    
-    Query Parameters:
-    - **start_date**: Filter events from this date onwards (optional)
-    - **end_date**: Filter events up to this date (optional)
-    - **event_type**: Filter by 'entry' or 'exit' (optional)
-    - **camera_id**: Filter by specific camera (optional)
-    - **limit**: Maximum records to return (1-1000, default: 100)
-    - **offset**: Number of records to skip for pagination (default: 0)
-    
-    Returns:
-    - **total**: Total number of matching records
-    - **count**: Number of records in this response
-    - **logs**: List of log records
-    - **filters_applied**: Summary of applied filters
-    """
     try:
         logger.info(
             f"Fetching logs: start={start_date}, end={end_date}, "
@@ -174,15 +153,6 @@ async def get_logs(
     description="Get quick statistics about the event logs."
 )
 async def get_log_stats():
-    """
-    Get statistics about logged events.
-    
-    Returns:
-    - **total_events**: Total number of logged events
-    - **entry_count**: Total entry events
-    - **exit_count**: Total exit events
-    - **cameras**: List of camera IDs that have logged events
-    """
     try:
         # Fetch all logs (up to reasonable limit for stats)
         all_logs = get_rickshaw_logs(limit=10000)

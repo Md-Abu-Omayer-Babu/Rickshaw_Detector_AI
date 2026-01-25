@@ -1,8 +1,3 @@
-"""
-CCTV/RTSP stream processing service.
-Handles real-time detection from camera streams with entry/exit counting.
-Supports both batch processing (legacy) and continuous streaming (live preview).
-"""
 import cv2
 import numpy as np
 import json
@@ -21,11 +16,6 @@ from app.core.config import settings, logger
 
 
 class CCTVStreamProcessor:
-    """
-    Processes RTSP/CCTV streams for real-time rickshaw detection.
-    Handles stream connection, reconnection, and entry/exit counting.
-    """
-    
     def __init__(
         self,
         detector: YOLODetector,
@@ -34,16 +24,6 @@ class CCTVStreamProcessor:
         camera_name: str = "Camera",
         continuous_mode: bool = False  # NEW: Enable continuous streaming mode
     ):
-        """
-        Initialize CCTV stream processor.
-        
-        Args:
-            detector: YOLODetector instance
-            camera_id: Unique camera identifier
-            rtsp_url: RTSP stream URL
-            camera_name: Human-readable camera name
-            continuous_mode: If True, enables continuous streaming with live preview
-        """
         self.detector = detector
         self.camera_id = camera_id
         self.rtsp_url = rtsp_url
@@ -67,12 +47,6 @@ class CCTVStreamProcessor:
                    f"continuous_mode={continuous_mode}")
     
     def connect(self) -> bool:
-        """
-        Connect to RTSP stream.
-        
-        Returns:
-            bool: True if connection successful
-        """
         try:
             logger.info(f"Connecting to stream: {self.rtsp_url}")
             
@@ -130,19 +104,12 @@ class CCTVStreamProcessor:
             return False
     
     def disconnect(self):
-        """Disconnect from stream and cleanup resources."""
         if self.cap:
             self.cap.release()
             self.cap = None
         logger.info(f"Stream disconnected: {self.camera_id}")
     
     def reconnect(self) -> bool:
-        """
-        Attempt to reconnect to stream.
-        
-        Returns:
-            bool: True if reconnection successful
-        """
         logger.info(f"Attempting to reconnect camera: {self.camera_id}")
         self.disconnect()
         
@@ -175,15 +142,6 @@ class CCTVStreamProcessor:
         return False
     
     def process_frame(self, frame: np.ndarray) -> Optional[np.ndarray]:
-        """
-        Process a single frame.
-        
-        Args:
-            frame: Input frame
-            
-        Returns:
-            Optional[np.ndarray]: Annotated frame or None if processing failed
-        """
         try:
             # Run detection
             detection_result = self.detector.detect(frame)
@@ -256,15 +214,6 @@ class CCTVStreamProcessor:
             return None
     
     def process_stream(self, duration: Optional[int] = None) -> Dict:
-        """
-        Process stream for a specified duration or continuously.
-        
-        Args:
-            duration: Duration in seconds (None for continuous streaming)
-            
-        Returns:
-            Dict: Processing statistics
-        """
         if not self.connect():
             raise RuntimeError(f"Failed to connect to stream: {self.rtsp_url}")
         
@@ -351,24 +300,12 @@ class CCTVStreamProcessor:
         return stats
     
     def stop(self):
-        """Stop stream processing."""
         self.is_running = False
         logger.info(f"Stop requested for camera: {self.camera_id}")
 
 
 class CCTVService:
-    """
-    Service for managing multiple CCTV streams.
-    Supports both batch processing (legacy) and continuous streaming (live preview).
-    """
-    
     def __init__(self, detector: YOLODetector):
-        """
-        Initialize CCTV service.
-        
-        Args:
-            detector: YOLODetector instance
-        """
         self.detector = detector
         self.active_streams: Dict[str, CCTVStreamProcessor] = {}
         self.active_threads: Dict[str, threading.Thread] = {}  # NEW: Track processing threads
@@ -385,18 +322,6 @@ class CCTVService:
         rtsp_url: str,
         camera_name: str = "Camera"
     ) -> Dict:
-        """
-        Start continuous CCTV stream processing with live preview support.
-        Runs in background thread and streams frames via MJPEG.
-        
-        Args:
-            camera_id: Unique camera identifier
-            rtsp_url: RTSP stream URL
-            camera_name: Human-readable camera name
-            
-        Returns:
-            Dict: Immediate response with camera info
-        """
         # Check if camera already streaming
         if camera_id in self.active_streams:
             existing_processor = self.active_streams[camera_id]
@@ -453,15 +378,6 @@ class CCTVService:
         }
     
     def stop_continuous_stream(self, camera_id: str) -> Dict:
-        """
-        Stop a continuous CCTV stream.
-        
-        Args:
-            camera_id: Camera identifier
-            
-        Returns:
-            Dict: Stop confirmation
-        """
         # Check if camera exists
         job = self.job_manager.get_job(camera_id)
         if not job:
@@ -484,15 +400,6 @@ class CCTVService:
         }
     
     def get_stream_status(self, camera_id: str) -> Dict:
-        """
-        Get the current status of a continuous stream.
-        
-        Args:
-            camera_id: Camera identifier
-            
-        Returns:
-            Dict: Stream status with live counts and metrics
-        """
         job = self.job_manager.get_job(camera_id)
         
         if not job:
@@ -523,12 +430,6 @@ class CCTVService:
         }
     
     def list_active_streams(self) -> Dict:
-        """
-        List all active continuous streams.
-        
-        Returns:
-            Dict: List of active camera streams
-        """
         all_jobs = self.job_manager.get_all_jobs()
         
         streams = []
@@ -560,19 +461,6 @@ class CCTVService:
         duration: Optional[int] = None,
         camera_name: str = "Camera"
     ) -> Dict:
-        """
-        Start processing a CCTV stream (LEGACY BATCH MODE).
-        Process for fixed duration and return results.
-        
-        Args:
-            camera_id: Unique camera identifier
-            rtsp_url: RTSP stream URL
-            duration: Duration to process in seconds (None for continuous)
-            camera_name: Human-readable camera name
-            
-        Returns:
-            Dict: Processing statistics
-        """
         # Check concurrent stream limit
         if len(self.active_streams) >= settings.max_concurrent_streams:
             raise RuntimeError(
@@ -601,12 +489,6 @@ class CCTVService:
                 del self.active_streams[camera_id]
     
     def stop_stream(self, camera_id: str):
-        """
-        Stop a specific stream.
-        
-        Args:
-            camera_id: Camera identifier
-        """
         if camera_id in self.active_streams:
             self.active_streams[camera_id].stop()
             logger.info(f"Stop signal sent to camera: {camera_id}")
@@ -614,16 +496,9 @@ class CCTVService:
             logger.warning(f"Camera not found in active streams: {camera_id}")
     
     def stop_all_streams(self):
-        """Stop all active streams."""
         for camera_id in list(self.active_streams.keys()):
             self.stop_stream(camera_id)
         logger.info("All streams stopped")
     
     def get_active_streams(self) -> list:
-        """
-        Get list of active streams.
-        
-        Returns:
-            list: List of active camera IDs
-        """
         return list(self.active_streams.keys())

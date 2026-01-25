@@ -1,7 +1,3 @@
-"""
-Video detection endpoint.
-Handles POST /api/detect/video requests.
-"""
 import uuid
 import threading
 from pathlib import Path
@@ -33,21 +29,6 @@ async def detect_video(
     enable_counting: bool = Query(True, description="Enable entry/exit counting"),
     camera_id: str = Query("default", description="Camera identifier for logging")
 ):
-    """
-    Detect rickshaws in an uploaded video with entry/exit counting.
-    
-    - **file**: Video file (MP4, AVI, MOV, MKV)
-    - **enable_counting**: Enable entry/exit line crossing detection (default: true)
-    - **camera_id**: Camera identifier for database logging (default: "default")
-    
-    Returns:
-    - **file_name**: Name of the processed output file
-    - **rickshaw_count**: Maximum number of rickshaws detected in any frame
-    - **total_entry**: Total entry count (if counting enabled)
-    - **total_exit**: Total exit count (if counting enabled)
-    - **net_count**: Net count (entry - exit)
-    - **output_url**: URL to access the annotated video
-    """
     try:
         logger.info(f"Video detection request: {file.filename}, counting={enable_counting}")
         
@@ -98,18 +79,6 @@ async def detect_video_async(
     enable_counting: bool = Query(True, description="Enable entry/exit counting"),
     camera_id: str = Query("default", description="Camera identifier for logging")
 ):
-    """
-    Start video processing in background and return job_id immediately.
-    Use the job_id to stream live processed frames via /api/stream/video/{job_id}
-    
-    - **file**: Video file (MP4, AVI, MOV, MKV)
-    - **enable_counting**: Enable entry/exit line crossing detection (default: true)
-    - **camera_id**: Camera identifier for database logging (default: "default")
-    
-    Returns:
-    - **job_id**: Unique identifier for this processing job
-    - **message**: Status message
-    """
     try:
         logger.info(f"Async video detection request: {file.filename}")
         
@@ -163,16 +132,6 @@ async def detect_video_async(
     description="Check the status and progress of a video processing job."
 )
 async def get_job_status(job_id: str):
-    """
-    Get the status of a video processing job.
-    
-    - **job_id**: Job identifier
-    
-    Returns:
-    - **status**: "processing", "completed", or "failed"
-    - **progress**: Processing progress (0-100%)
-    - **result**: Final result (if completed)
-    """
     try:
         job_manager = get_job_manager()
         job = job_manager.get_job(job_id)

@@ -1,7 +1,3 @@
-"""
-CCTV streaming endpoint for live preview.
-Provides MJPEG stream of real-time CCTV camera frames.
-"""
 import cv2
 import time
 from fastapi import APIRouter, HTTPException
@@ -20,20 +16,6 @@ router = APIRouter(prefix="/stream", tags=["CCTV Streaming"])
     description="Get live MJPEG stream of processed CCTV frames. Display using <img> tag."
 )
 async def stream_cctv(camera_id: str):
-    """
-    Stream live CCTV camera frames as MJPEG (Motion JPEG).
-    This endpoint streams the latest processed frame continuously from a live camera.
-    
-    - **camera_id**: Camera identifier from /api/cctv/start
-    
-    Usage in frontend:
-    <img src="/api/stream/cctv/{camera_id}" alt="Live CCTV Feed" />
-    
-    Returns:
-    - Multipart MJPEG stream (image/jpeg frames)
-    
-    Note: Stream continues until camera is stopped or client disconnects.
-    """
     try:
         job_manager = get_cctv_job_manager()
         job = job_manager.get_job(camera_id)
@@ -47,10 +29,6 @@ async def stream_cctv(camera_id: str):
         logger.info(f"[CCTV Stream {camera_id}] Starting MJPEG stream")
         
         def generate_mjpeg():
-            """
-            Generator function that yields MJPEG frames.
-            Continuously sends the latest processed frame from live camera.
-            """
             last_frame_data = None
             no_frame_count = 0
             max_no_frame_wait = 50  # Wait up to ~5 seconds for first frame

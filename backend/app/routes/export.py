@@ -1,7 +1,3 @@
-"""
-Data export endpoint.
-Provides functionality to export rickshaw logs in CSV or JSON format.
-"""
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse, JSONResponse
 from datetime import datetime
@@ -54,20 +50,6 @@ async def export_logs(
         description="Maximum number of records to export"
     )
 ):
-    """
-    Export rickshaw logs to CSV or JSON.
-    
-    Query Parameters:
-    - **format**: Export format - 'csv' or 'json' (default: csv)
-    - **start_date**: Filter from this date (optional)
-    - **end_date**: Filter to this date (optional)
-    - **event_type**: Filter by 'entry' or 'exit' (optional)
-    - **camera_id**: Filter by camera (optional)
-    - **limit**: Max records (1-100000, default: 10000)
-    
-    Returns:
-    - CSV or JSON file for download
-    """
     try:
         logger.info(
             f"Export request: format={format}, start={start_date}, "
@@ -136,16 +118,6 @@ async def export_logs(
 
 
 def _export_as_csv(logs: list, filename: str) -> StreamingResponse:
-    """
-    Export logs as CSV file.
-    
-    Args:
-        logs: List of log dictionaries
-        filename: Name for the downloaded file
-        
-    Returns:
-        StreamingResponse with CSV data
-    """
     # Create CSV in memory
     output = io.StringIO()
     writer = csv.DictWriter(
@@ -173,16 +145,6 @@ def _export_as_csv(logs: list, filename: str) -> StreamingResponse:
 
 
 def _export_as_json(logs: list, filename: str) -> StreamingResponse:
-    """
-    Export logs as JSON file.
-    
-    Args:
-        logs: List of log dictionaries
-        filename: Name for the downloaded file
-        
-    Returns:
-        StreamingResponse with JSON data
-    """
     # Create JSON structure
     export_data = {
         "export_timestamp": datetime.now().isoformat(),
@@ -220,16 +182,6 @@ async def export_analytics(
         description="Number of past days to include"
     )
 ):
-    """
-    Export analytics summary.
-    
-    Query Parameters:
-    - **format**: Export format - 'csv' or 'json' (default: csv)
-    - **days**: Number of past days to include (1-365, default: 30)
-    
-    Returns:
-    - CSV or JSON file with daily statistics
-    """
     try:
         from app.db.database import get_daily_counts
         
@@ -274,7 +226,6 @@ async def export_analytics(
 
 
 def _export_analytics_csv(data: list, filename: str) -> StreamingResponse:
-    """Export analytics as CSV."""
     output = io.StringIO()
     writer = csv.DictWriter(
         output,
@@ -296,7 +247,6 @@ def _export_analytics_csv(data: list, filename: str) -> StreamingResponse:
 
 
 def _export_analytics_json(data: list, filename: str) -> StreamingResponse:
-    """Export analytics as JSON."""
     export_data = {
         "export_timestamp": datetime.now().isoformat(),
         "record_count": len(data),

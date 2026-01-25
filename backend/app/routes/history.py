@@ -1,7 +1,3 @@
-"""
-History endpoint.
-Handles GET /api/history requests with optional filtering.
-"""
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 from app.db.models import HistoryResponse, DetectionRecord, ErrorResponse
@@ -41,18 +37,6 @@ async def get_history(
         examples=["image"]
     )
 ):
-    """
-    Get detection history records with optional filters.
-    
-    Query Parameters:
-    - **start_date**: Filter records from this date onwards (YYYY-MM-DD)
-    - **end_date**: Filter records up to this date (YYYY-MM-DD)
-    - **file_type**: Filter by 'image' or 'video'
-    
-    Returns:
-    - **total_records**: Total number of filtered records
-    - **detections**: List of filtered detection records
-    """
     try:
         # Validate date range
         if start_date and end_date and start_date > end_date:

@@ -1,7 +1,3 @@
-"""
-Configuration module for the FastAPI application.
-Contains all application settings and environment configurations.
-"""
 from pydantic_settings import BaseSettings
 from pathlib import Path
 from typing import Tuple, List, Dict
@@ -10,8 +6,6 @@ from logging.handlers import RotatingFileHandler
 
 
 class Settings(BaseSettings):
-    """Application settings and configuration."""
-
     # Application Info
     app_name: str = "Smart Rickshaw Entry-Exit Monitoring System"
     version: str = "2.0.0"
@@ -102,16 +96,14 @@ settings = Settings()
 
 
 def ensure_directories():
-    """Ensure output and log directories exist."""
     settings.images_output_dir.mkdir(parents=True, exist_ok=True)
     settings.videos_output_dir.mkdir(parents=True, exist_ok=True)
     settings.logs_dir.mkdir(parents=True, exist_ok=True)
     settings.outputs_dir.mkdir(parents=True, exist_ok=True)
-    print(f"✓ Output and log directories created")
+    print(f"Output and log directories created")
 
 
 def setup_logging():
-    """Configure application logging."""
     logger = logging.getLogger("rickshaw_detection")
     if not logger.handlers:
         logger.setLevel(getattr(logging, settings.log_level.upper(), logging.INFO))

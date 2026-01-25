@@ -1,7 +1,3 @@
-"""
-CCTV/RTSP stream detection endpoint.
-Handles both batch processing (legacy) and continuous streaming (live preview).
-"""
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
@@ -20,14 +16,12 @@ router = APIRouter(prefix="/cctv", tags=["CCTV Stream"])
 # ========================================
 
 class CCTVStartRequest(BaseModel):
-    """Request schema for starting continuous CCTV stream."""
     camera_id: str
     rtsp_url: str
     camera_name: Optional[str] = "Camera"
 
 
 class CCTVStatusResponse(BaseModel):
-    """Response schema for CCTV stream status."""
     success: bool = True
     camera_id: str
     camera_name: str
@@ -48,23 +42,6 @@ class CCTVStatusResponse(BaseModel):
     description="Start a continuous CCTV/RTSP stream that can be viewed in real-time via MJPEG."
 )
 async def start_cctv_stream(request: CCTVStartRequest):
-    """
-    Start continuous CCTV stream processing with live preview.
-    Stream continues until explicitly stopped via /api/cctv/stop/{camera_id}.
-    
-    - **camera_id**: Unique identifier for the camera
-    - **rtsp_url**: RTSP stream URL (e.g., rtsp://admin:password@192.168.1.100:554/stream1)
-    - **camera_name**: Human-readable camera name (optional)
-    
-    Returns:
-    - Immediate response with camera info
-    - Stream status: "connecting" → "streaming"
-    - Access live feed: GET /api/stream/cctv/{camera_id}
-    - Poll status: GET /api/cctv/status/{camera_id}
-    
-    Note: This is for continuous streaming with live preview, not batch processing.
-    For batch processing, use /api/cctv/stream endpoint.
-    """
     try:
         logger.info(f"Starting continuous CCTV stream: camera={request.camera_id}")
         
@@ -98,14 +75,6 @@ async def start_cctv_stream(request: CCTVStartRequest):
     description="Stop a running continuous CCTV stream."
 )
 async def stop_cctv_stream(camera_id: str):
-    """
-    Stop a continuous CCTV stream.
-    
-    - **camera_id**: Camera identifier
-    
-    Returns:
-    - Confirmation of stream stop
-    """
     try:
         logger.info(f"Stopping continuous CCTV stream: camera={camera_id}")
         
@@ -136,18 +105,6 @@ async def stop_cctv_stream(camera_id: str):
     description="Get current status and statistics of a continuous CCTV stream."
 )
 async def get_cctv_status(camera_id: str):
-    """
-    Get the current status of a continuous CCTV stream.
-    Poll this endpoint every 2 seconds for live updates.
-    
-    - **camera_id**: Camera identifier
-    
-    Returns:
-    - Stream status: idle | connecting | streaming | stopped | error
-    - Live counts: entry_count, exit_count, net_count
-    - Performance metrics: fps, uptime, frames_processed
-    - Stream properties: width, height, fps
-    """
     try:
         # Get detector instance
         detector = get_detector()
@@ -174,12 +131,6 @@ async def get_cctv_status(camera_id: str):
     description="Get list of all currently active continuous streams."
 )
 async def list_cctv_streams():
-    """
-    List all active continuous CCTV streams.
-    
-    Returns:
-    - List of all active camera streams with their status
-    """
     try:
         # Get detector instance
         detector = get_detector()
@@ -213,24 +164,6 @@ async def list_cctv_streams():
     description="Process a live CCTV or RTSP stream with real-time rickshaw detection and entry/exit counting."
 )
 async def process_cctv_stream(request: CCTVStreamRequest):
-    """
-    Process a CCTV/RTSP stream for real-time detection.
-    
-    - **camera_id**: Unique identifier for the camera
-    - **rtsp_url**: RTSP stream URL (e.g., rtsp://admin:password@192.168.1.100:554/stream1)
-    - **duration**: Duration to process in seconds (default: 60)
-    - **camera_name**: Human-readable camera name (optional)
-    
-    Returns:
-    - Total entry count
-    - Total exit count
-    - Net count
-    - Number of frames processed
-    - Processing duration
-    
-    Note: This endpoint processes the stream for the specified duration and then returns.
-    For continuous monitoring, consider using a background service.
-    """
     try:
         logger.info(f"Starting CCTV stream processing: camera={request.camera_id}, "
                    f"duration={request.duration}s")
@@ -280,16 +213,6 @@ async def process_cctv_stream(request: CCTVStreamRequest):
     description="Test connection to a CCTV/RTSP stream without full processing."
 )
 async def test_stream_connection(request: CCTVStreamRequest):
-    """
-    Test connection to a CCTV/RTSP stream.
-    
-    - **camera_id**: Unique identifier for the camera
-    - **rtsp_url**: RTSP stream URL
-    
-    Returns:
-    - Connection status
-    - Stream properties (if successful)
-    """
     try:
         import cv2
         

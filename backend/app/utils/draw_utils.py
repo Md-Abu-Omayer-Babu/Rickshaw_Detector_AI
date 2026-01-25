@@ -1,6 +1,3 @@
-"""
-Drawing utilities for visualizing detection results.
-"""
 import cv2
 import numpy as np
 from typing import Tuple
@@ -30,19 +27,6 @@ def draw_detections(
     thickness: int = 2,
     font_scale: float = 0.6
 ) -> np.ndarray:
-    """
-    Draw bounding boxes and labels on image.
-    
-    Args:
-        image: Input image (BGR format)
-        detection_result: Detection results
-        detector: YOLODetector instance for getting class names
-        thickness: Line thickness for bounding boxes
-        font_scale: Font scale for labels
-        
-    Returns:
-        np.ndarray: Image with drawn bounding boxes and labels
-    """
     # Create a copy to avoid modifying original
     output_image = image.copy()
     
@@ -100,19 +84,6 @@ def draw_count_overlay(
     font_scale: float = 1.2,
     thickness: int = 3
 ) -> np.ndarray:
-    """
-    Draw rickshaw count overlay on image.
-    
-    Args:
-        image: Input image (BGR format)
-        count: Number of rickshaws detected
-        position: Position to draw the text (x, y)
-        font_scale: Font scale for text
-        thickness: Text thickness
-        
-    Returns:
-        np.ndarray: Image with count overlay
-    """
     output_image = image.copy()
     
     # Create text
@@ -155,20 +126,6 @@ def draw_entry_exit_line(
     thickness: int = 3,
     label: str = "Counting Line"
 ) -> np.ndarray:
-    """
-    Draw entry/exit line on image.
-    
-    Args:
-        image: Input image (BGR format)
-        line_start: Starting point (x, y)
-        line_end: Ending point (x, y)
-        color: Line color (BGR)
-        thickness: Line thickness
-        label: Text label for the line
-        
-    Returns:
-        np.ndarray: Image with drawn line
-    """
     output_image = image.copy()
     
     # Draw the main line
@@ -221,21 +178,6 @@ def draw_entry_exit_counts(
     font_scale: float = 0.8,
     thickness: int = 2
 ) -> np.ndarray:
-    """
-    Draw entry/exit count overlay on image.
-    
-    Args:
-        image: Input image (BGR format)
-        entry_count: Number of entries
-        exit_count: Number of exits
-        net_count: Net count (entry - exit)
-        position: Starting position for text (x, y)
-        font_scale: Font scale for text
-        thickness: Text thickness
-        
-    Returns:
-        np.ndarray: Image with count overlay
-    """
     output_image = image.copy()
     
     # Create text lines
@@ -291,18 +233,6 @@ def draw_tracked_objects(
     color: Tuple[int, int, int] = (255, 0, 255),
     thickness: int = 2
 ) -> np.ndarray:
-    """
-    Draw tracked objects with their IDs.
-    
-    Args:
-        image: Input image (BGR format)
-        tracked_objects: Dictionary mapping track IDs to bounding boxes
-        color: Color for tracking boxes
-        thickness: Line thickness
-        
-    Returns:
-        np.ndarray: Image with tracked objects
-    """
     output_image = image.copy()
     
     for track_id, bbox in tracked_objects.items():

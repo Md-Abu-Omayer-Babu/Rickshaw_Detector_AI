@@ -1,7 +1,3 @@
-"""
-Webcam stream processing service for real-time rickshaw detection.
-Optimized with frame skipping and efficient MJPEG streaming.
-"""
 import cv2
 import numpy as np
 import time
@@ -18,7 +14,6 @@ from app.core.config import settings, logger
 
 @dataclass
 class WebcamJob:
-    """Represents an active webcam streaming job"""
     camera_index: int
     camera_name: str
     status: str  # 'connecting', 'streaming', 'stopped', 'error'
@@ -45,11 +40,6 @@ class WebcamJob:
 
 
 class WebcamStreamProcessor:
-    """
-    Processes webcam streams with real-time YOLOv8 detection.
-    Implements frame skipping for performance optimization.
-    """
-    
     def __init__(
         self,
         detector: YOLODetector,
@@ -58,16 +48,6 @@ class WebcamStreamProcessor:
         inference_size: tuple = (640, 640),
         camera_name: str = "Webcam"
     ):
-        """
-        Initialize webcam stream processor.
-        
-        Args:
-            detector: YOLODetector instance
-            camera_index: Camera device index (0 for default webcam)
-            frame_skip: Process every Nth frame (default: 3)
-            inference_size: Size for YOLO inference (width, height)
-            camera_name: Display name for camera
-        """
         self.detector = detector
         self.camera_index = camera_index
         self.frame_skip = frame_skip
@@ -102,12 +82,6 @@ class WebcamStreamProcessor:
         logger.info(f"WebcamStreamProcessor initialized: camera={camera_index}, frame_skip={frame_skip}")
     
     def start(self) -> Dict:
-        """
-        Start webcam stream capture and processing.
-        
-        Returns:
-            Dict: Status information
-        """
         try:
             # Open webcam
             self.cap = cv2.VideoCapture(self.camera_index)
@@ -145,13 +119,6 @@ class WebcamStreamProcessor:
             raise RuntimeError(f"Failed to start webcam: {str(e)}")
     
     def process_frames(self) -> Generator[bytes, None, None]:
-        """
-        Main processing loop. Yields MJPEG frames.
-        Implements frame skipping for performance.
-        
-        Yields:
-            bytes: JPEG-encoded frame
-        """
         frame_counter = 0
         fps_counter = 0
         fps_start_time = time.time()
@@ -266,7 +233,6 @@ class WebcamStreamProcessor:
             self.stop()
     
     def stop(self):
-        """Stop webcam stream and release resources"""
         logger.info("Stopping webcam stream...")
         self.is_running = False
         self.stop_event.set()
@@ -278,7 +244,6 @@ class WebcamStreamProcessor:
         logger.info("Webcam stream stopped")
     
     def get_status(self) -> Dict:
-        """Get current stream status and statistics"""
         return {
             "camera_index": self.camera_index,
             "camera_name": self.camera_name,
@@ -302,17 +267,12 @@ class WebcamStreamProcessor:
 
 
 class WebcamService:
-    """
-    Singleton service to manage webcam streaming jobs.
-    """
-    
     def __init__(self):
         self.active_streams: Dict[str, WebcamStreamProcessor] = {}
         self.detector = None
         logger.info("WebcamService initialized")
     
     def _get_detector(self) -> YOLODetector:
-        """Get or create YOLODetector instance (singleton)"""
         if self.detector is None:
             self.detector = YOLODetector()
         return self.detector
@@ -323,17 +283,6 @@ class WebcamService:
         camera_name: str = "Webcam",
         frame_skip: int = 3
     ) -> Dict:
-        """
-        Start a webcam stream.
-        
-        Args:
-            camera_index: Camera device index (0 for default)
-            camera_name: Display name
-            frame_skip: Process every Nth frame
-            
-        Returns:
-            Dict: Status information
-        """
         stream_id = f"webcam_{camera_index}"
         
         # Stop existing stream if any
@@ -360,7 +309,6 @@ class WebcamService:
             raise
     
     def stop_stream(self, camera_index: int = 0) -> Dict:
-        """Stop a webcam stream"""
         stream_id = f"webcam_{camera_index}"
         
         if stream_id in self.active_streams:
@@ -373,12 +321,10 @@ class WebcamService:
         return {"success": False, "message": "Stream not found"}
     
     def get_stream_processor(self, camera_index: int = 0) -> Optional[WebcamStreamProcessor]:
-        """Get active stream processor"""
         stream_id = f"webcam_{camera_index}"
         return self.active_streams.get(stream_id)
     
     def get_status(self, camera_index: int = 0) -> Dict:
-        """Get stream status"""
         processor = self.get_stream_processor(camera_index)
         if processor:
             return processor.get_status()
@@ -390,7 +336,6 @@ class WebcamService:
         }
     
     def list_streams(self) -> Dict:
-        """List all active streams"""
         streams = []
         for stream_id, processor in self.active_streams.items():
             streams.append(processor.get_status())
@@ -406,7 +351,6 @@ class WebcamService:
 _webcam_service = None
 
 def get_webcam_service() -> WebcamService:
-    """Get singleton WebcamService instance"""
     global _webcam_service
     if _webcam_service is None:
         _webcam_service = WebcamService()

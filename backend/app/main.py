@@ -1,7 +1,3 @@
-"""
-Main FastAPI application entry point.
-Configures the application, registers routes, and sets up middleware.
-"""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -34,7 +30,6 @@ app.add_middleware(
 # Register startup and shutdown events
 @app.on_event("startup")
 async def on_startup():
-    """Execute startup tasks."""
     logger.info("Starting FastAPI application")
     startup_event()
     logger.info("Application startup complete")
@@ -42,7 +37,6 @@ async def on_startup():
 
 @app.on_event("shutdown")
 async def on_shutdown():
-    """Execute shutdown tasks."""
     logger.info("Shutting down FastAPI application")
     shutdown_event()
     logger.info("Application shutdown complete")
@@ -80,9 +74,6 @@ app.include_router(export.router, prefix=settings.api_prefix)
 # Root endpoint
 @app.get("/", tags=["Root"])
 async def root():
-    """
-    Root endpoint providing API information.
-    """
     return {
         "name": settings.app_name,
         "version": settings.version,
@@ -115,9 +106,6 @@ async def root():
 # Health check endpoint
 @app.get("/health", tags=["Health"])
 async def health_check():
-    """
-    Health check endpoint for monitoring.
-    """
     return {
         "status": "healthy",
         "service": settings.app_name,
@@ -128,9 +116,6 @@ async def health_check():
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    """
-    Global exception handler for unhandled errors.
-    """
     logger.error(f"Unhandled exception: {str(exc)}", exc_info=True)
     return JSONResponse(
         status_code=500,

@@ -1,7 +1,3 @@
-"""
-Image detection endpoint.
-Handles POST /api/detect/image requests.
-"""
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from app.db.models import ImageDetectionResponse, ErrorResponse
 from app.services.inference_service import InferenceService
@@ -24,16 +20,6 @@ router = APIRouter(prefix="/detect", tags=["Detection"])
     description="Upload an image file to detect and count rickshaws. Returns annotated image with bounding boxes."
 )
 async def detect_image(file: UploadFile = File(..., description="Image file to process")):
-    """
-    Detect rickshaws in an uploaded image.
-    
-    - **file**: Image file (JPG, PNG, BMP, WEBP)
-    
-    Returns:
-    - **file_name**: Name of the processed output file
-    - **rickshaw_count**: Number of rickshaws detected
-    - **output_url**: URL to access the annotated image
-    """
     try:
         # Validate file
         validate_image_file(file)

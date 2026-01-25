@@ -1,7 +1,3 @@
-"""
-Video streaming endpoint for live preview.
-Provides MJPEG stream of processed video frames.
-"""
 import cv2
 import time
 from fastapi import APIRouter, HTTPException
@@ -20,18 +16,6 @@ router = APIRouter(prefix="/stream", tags=["Streaming"])
     description="Get live MJPEG stream of processed video frames for a job. Display using <img> tag."
 )
 async def stream_video(job_id: str):
-    """
-    Stream processed video frames as MJPEG (Motion JPEG).
-    This endpoint streams the latest processed frame continuously.
-    
-    - **job_id**: Job identifier from /api/detect/video/async
-    
-    Usage in frontend:
-    <img src="/api/stream/video/{job_id}" alt="Live Preview" />
-    
-    Returns:
-    - Multipart MJPEG stream (image/jpeg frames)
-    """
     try:
         job_manager = get_job_manager()
         job = job_manager.get_job(job_id)
@@ -45,10 +29,6 @@ async def stream_video(job_id: str):
         logger.info(f"[Stream {job_id}] Starting MJPEG stream")
         
         def generate_mjpeg():
-            """
-            Generator function that yields MJPEG frames.
-            Continuously sends the latest processed frame.
-            """
             last_frame_data = None
             no_frame_count = 0
             max_no_frame_attempts = 100  # Max attempts to wait for first frame
