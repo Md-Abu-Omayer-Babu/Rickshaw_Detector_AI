@@ -61,12 +61,14 @@ class VideoJobManager:
         with self._jobs_lock:
             return self._jobs.get(job_id)
     
-    def update_frame(self, job_id: str, frame: np.ndarray, frame_number: int):
+    def update_frame(self, job_id: str, frame: np.ndarray, frame_number: int, entry_count: int = 0, exit_count: int = 0):
         job = self.get_job(job_id)
         if job:
             with job.latest_frame_lock:
                 job.latest_frame = frame.copy()  # Copy to avoid race conditions
                 job.processed_frames = frame_number
+                job.total_entry = entry_count
+                job.total_exit = exit_count
                 
                 # Update progress
                 if job.total_frames > 0:

@@ -41,6 +41,7 @@ const VideoDetection = () => {
       statusCheckInterval.current = setInterval(async () => {
         try {
           const status = await getJobStatus(jobId);
+          setJobStatus(status);
           setIsPaused(status.status === 'paused');
           
           // If completed, fetch final results
@@ -224,6 +225,26 @@ const VideoDetection = () => {
               <h3 className="text-lg font-semibold text-gray-800 mb-3">
                 Live Processing Preview
               </h3>
+
+              {/* Real-time Entry/Exit Counts */}
+              {jobStatus && (jobStatus.entry_count !== undefined || jobStatus.exit_count !== undefined) && (
+                <div className="mb-4 grid grid-cols-3 gap-4">
+                  <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center">
+                    <p className="text-xs font-medium text-green-700 mb-1">ENTRY</p>
+                    <p className="text-3xl font-bold text-green-600">{jobStatus.entry_count || 0}</p>
+                  </div>
+                  <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 text-center">
+                    <p className="text-xs font-medium text-red-700 mb-1">EXIT</p>
+                    <p className="text-3xl font-bold text-red-600">{jobStatus.exit_count || 0}</p>
+                  </div>
+                  <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 text-center">
+                    <p className="text-xs font-medium text-blue-700 mb-1">NET</p>
+                    <p className="text-3xl font-bold text-blue-600">
+                      {(jobStatus.entry_count || 0) - (jobStatus.exit_count || 0)}
+                    </p>
+                  </div>
+                </div>
+              )}
               
               {/* MJPEG Stream - Live Preview */}
               <div className="relative bg-gray-900 rounded-lg overflow-hidden min-h-[300px] flex items-center justify-center">

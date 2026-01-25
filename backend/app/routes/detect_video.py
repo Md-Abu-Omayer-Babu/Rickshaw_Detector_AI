@@ -147,7 +147,9 @@ async def get_job_status(job_id: str):
             "status": job.status,
             "progress": job.progress,
             "processed_frames": job.processed_frames,
-            "total_frames": job.total_frames
+            "total_frames": job.total_frames,
+            "entry_count": job.total_entry,
+            "exit_count": job.total_exit
         }
         
         # Include results if completed
