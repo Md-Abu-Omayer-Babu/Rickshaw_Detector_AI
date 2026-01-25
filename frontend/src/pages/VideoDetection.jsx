@@ -155,7 +155,7 @@ const VideoDetection = () => {
             <button
               onClick={handleDetection}
               disabled={loading}
-              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium text-lg"
+              className="w-full cursor-pointer px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium text-lg"
             >
               {loading ? 'Processing...' : 'Process Video'}
             </button>
@@ -230,7 +230,7 @@ const VideoDetection = () => {
           </div>
           <button
             onClick={() => setError(null)}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+            className="mt-4 cursor-pointer px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
           >
             Dismiss
           </button>
@@ -252,7 +252,7 @@ const VideoDetection = () => {
                   setResult(null);
                   setSelectedFile(null);
                 }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="px-4 py-2 cursor-pointer bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
                 Process Another Video
               </button>

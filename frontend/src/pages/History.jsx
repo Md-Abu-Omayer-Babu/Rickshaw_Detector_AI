@@ -216,7 +216,7 @@ const History = () => {
         </div>
         <button
           onClick={() => fetchHistory(appliedFilters)}
-          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+          className="mt-4 px-4 cursor-pointer py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
         >
           Retry
         </button>
@@ -300,13 +300,13 @@ const History = () => {
           <div className="flex items-end gap-2">
             <button
               onClick={handleApplyFilters}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="flex-1 px-4 cursor-pointer py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
               Apply
             </button>
             <button
               onClick={handleResetFilters}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              className="px-4 py-2 cursor-pointer bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
             >
               Reset
             </button>
@@ -319,7 +319,7 @@ const History = () => {
         <button
           onClick={handleExportPDF}
           disabled={exporting || data.detections.length === 0}
-          className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-md"
+          className="flex items-center cursor-pointer gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-md"
         >
           <FileDown className="w-4 h-4" />
           {exporting ? 'Exporting...' : 'Export PDF'}
@@ -327,7 +327,7 @@ const History = () => {
         <button
           onClick={handleExportCSV}
           disabled={exporting || data.detections.length === 0}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-md"
+          className="flex items-center cursor-pointer gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-md"
         >
           <Download className="w-4 h-4" />
           {exporting ? 'Exporting...' : 'Export CSV'}
@@ -335,7 +335,7 @@ const History = () => {
         <button
           onClick={handleExportJSON}
           disabled={exporting || data.detections.length === 0}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-md"
+          className="flex items-center cursor-pointer gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-md"
         >
           <Download className="w-4 h-4" />
           {exporting ? 'Exporting...' : 'Export JSON'}

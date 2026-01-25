@@ -45,7 +45,7 @@ const Dashboard = () => {
         </div>
         <button
           onClick={fetchDashboard}
-          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+          className="mt-4 px-4 py-2 cursor-pointer bg-red-600 text-white rounded-md hover:bg-red-700"
         >
           Retry
         </button>

@@ -65,7 +65,7 @@ const UploadBox = ({ onFileSelect, accept, maxSize, label = 'Upload File' }) => 
   return (
     <div className="w-full">
       <div
-        className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+        className={`relative cursor-pointer border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
           dragActive
             ? 'border-blue-500 bg-blue-50'
             : 'border-gray-300 bg-gray-50 hover:border-gray-400'
@@ -140,7 +140,7 @@ const UploadBox = ({ onFileSelect, accept, maxSize, label = 'Upload File' }) => 
                   e.stopPropagation();
                   clearFile();
                 }}
-                className="mt-3 px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                className="mt-3 px-4 cursor-pointer py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
               >
                 Remove File
               </button>

@@ -188,7 +188,7 @@ const CCTV = () => {
             </div>
             <button
               onClick={() => setError(null)}
-              className="text-red-500 hover:text-red-700 ml-4"
+              className="text-red-500 cursor-pointer hover:text-red-700 ml-4"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -262,7 +262,7 @@ const CCTV = () => {
             <button
               onClick={handleTestConnection}
               disabled={testing || loading || isStreaming}
-              className="flex-1 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center"
+              className="flex-1 px-6 cursor-pointer py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center"
             >
               {testing ? (
                 <>
@@ -281,7 +281,7 @@ const CCTV = () => {
               <button
                 onClick={handleStartStream}
                 disabled={loading || testing}
-                className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center"
+                className="flex-1 px-6 py-3 cursor-pointer bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center"
               >
                 {loading ? (
                   <>
@@ -299,7 +299,7 @@ const CCTV = () => {
               <button
                 onClick={handleStopStream}
                 disabled={loading}
-                className="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center"
+                className="flex-1 px-6 cursor-pointer py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center"
               >
                 {loading ? (
                   <>
