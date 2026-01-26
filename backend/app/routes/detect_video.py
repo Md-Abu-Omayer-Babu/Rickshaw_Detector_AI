@@ -252,3 +252,59 @@ async def stop_job(job_id: str):
     except Exception as e:
         logger.error(f"Error stopping job: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post(
+    "/video/forward/{job_id}",
+    summary="Skip forward in video processing",
+    description="Skip forward by a specified number of frames in the video processing."
+)
+async def forward_job(
+    job_id: str,
+    frames: int = Query(30, description="Number of frames to skip forward", gt=0, le=300)
+):
+    try:
+        job_manager = get_job_manager()
+        success = job_manager.skip_forward(job_id, frames)
+        
+        if not success:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot skip forward in job: {job_id}. Job may not exist or not in processing/paused state."
+            )
+        
+        return {"success": True, "message": f"Job {job_id} skipping forward {frames} frames"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error skipping forward: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post(
+    "/video/backward/{job_id}",
+    summary="Skip backward in video processing",
+    description="Skip backward by a specified number of frames in the video processing."
+)
+async def backward_job(
+    job_id: str,
+    frames: int = Query(30, description="Number of frames to skip backward", gt=0, le=300)
+):
+    try:
+        job_manager = get_job_manager()
+        success = job_manager.skip_backward(job_id, frames)
+        
+        if not success:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot skip backward in job: {job_id}. Job may not exist or not in processing/paused state."
+            )
+        
+        return {"success": True, "message": f"Job {job_id} skipping backward {frames} frames"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error skipping backward: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))

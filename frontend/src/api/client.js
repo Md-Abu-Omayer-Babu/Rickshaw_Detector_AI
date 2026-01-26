@@ -147,6 +147,22 @@ export const stopVideoJob = async (jobId) => {
 };
 
 /**
+ * Skip forward in video processing
+ */
+export const forwardVideoJob = async (jobId, frames = 30) => {
+  const response = await apiClient.post(`/api/detect/video/forward/${jobId}?frames=${frames}`);
+  return response.data;
+};
+
+/**
+ * Skip backward in video processing
+ */
+export const backwardVideoJob = async (jobId, frames = 30) => {
+  const response = await apiClient.post(`/api/detect/video/backward/${jobId}?frames=${frames}`);
+  return response.data;
+};
+
+/**
  * Get MJPEG stream URL for live video preview
  */
 export const getVideoStreamUrl = (jobId) => {

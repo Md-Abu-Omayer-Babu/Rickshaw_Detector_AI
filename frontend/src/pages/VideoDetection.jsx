@@ -3,11 +3,11 @@
  * Now supports LIVE PREVIEW during processing with STOP, PAUSE, RESUME controls
  */
 import {useEffect, useRef, useState } from 'react';
-import { detectVideoAsync, getJobStatus, getVideoStreamUrl, getStaticUrl, pauseVideoJob, resumeVideoJob, stopVideoJob } from '../api/client';
+import { detectVideoAsync, getJobStatus, getVideoStreamUrl, getStaticUrl, pauseVideoJob, resumeVideoJob, stopVideoJob, forwardVideoJob, backwardVideoJob } from '../api/client';
 import UploadBox from '../components/UploadBox';
 import VideoPlayer from '../components/VideoPlayer';
 import Loader from '../components/Loader';
-import { Pause, Play, Square } from 'lucide-react';
+import { Pause, Play, Square, FastForward, Rewind } from 'lucide-react';
 
 const VideoDetection = () => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -16,6 +16,7 @@ const VideoDetection = () => {
   const [error, setError] = useState(null);
   const [enableCounting, setEnableCounting] = useState(true);
   const [cameraId, setCameraId] = useState('default');
+  const [skipAmount, setSkipAmount] = useState(30);
   
   // Live preview state
   const [jobId, setJobId] = useState(null);
@@ -128,6 +129,28 @@ const VideoDetection = () => {
     } catch (err) {
       console.error('Error stopping job:', err);
       setError('Failed to stop processing');
+    }
+  };
+
+  const handleForward = async () => {
+    if (!jobId) return;
+    try {
+      await forwardVideoJob(jobId, skipAmount);
+      console.log(`Skipping forward ${skipAmount} frames for job:`, jobId);
+    } catch (err) {
+      console.error('Error forwarding job:', err);
+      setError('Failed to skip forward');
+    }
+  };
+
+  const handleBackward = async () => {
+    if (!jobId) return;
+    try {
+      await backwardVideoJob(jobId, skipAmount);
+      console.log(`Skipping backward ${skipAmount} frames for job:`, jobId);
+    } catch (err) {
+      console.error('Error backing up job:', err);
+      setError('Failed to skip backward');
     }
   };
 
@@ -291,12 +314,37 @@ const VideoDetection = () => {
                 </div>
               )}
 
+              {/* Skip Amount Control */}
+              <div className="mt-4 flex items-center justify-center gap-3">
+                <label className="text-sm font-medium text-gray-700">Skip Frames:</label>
+                <input
+                  type="number"
+                  value={skipAmount}
+                  onChange={(e) => setSkipAmount(Math.max(1, Math.min(300, parseInt(e.target.value) || 30)))}
+                  min="1"
+                  max="300"
+                  className="w-20 px-3 py-1.5 border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-xs text-gray-500">frames per skip (1-300)</span>
+              </div>
+
               {/* Control Buttons */}
               <div className="mt-4 flex gap-3 justify-center">
+                <button
+                  onClick={handleBackward}
+                  disabled={isPaused}
+                  className="flex cursor-pointer items-center gap-2 px-6 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium shadow-md"
+                  title="Skip backward"
+                >
+                  <Rewind className="w-5 h-5" />
+                  Backward
+                </button>
+
                 {!isPaused ? (
                   <button
                     onClick={handlePause}
                     className="flex items-center gap-2 px-6 py-2.5 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium shadow-md"
+                    title="Pause processing"
                   >
                     <Pause className="w-5 h-5" />
                     Pause
@@ -305,17 +353,30 @@ const VideoDetection = () => {
                   <button
                     onClick={handleResume}
                     className="flex items-center gap-2 px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium shadow-md"
+                    title="Resume processing"
                   >
                     <Play className="w-5 h-5" />
                     Resume
                   </button>
                 )}
+                
                 <button
                   onClick={handleStop}
                   className="flex items-center gap-2 px-6 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium shadow-md"
+                  title="Stop processing"
                 >
                   <Square className="w-5 h-5" />
                   Stop
+                </button>
+                
+                <button
+                  onClick={handleForward}
+                  disabled={isPaused}
+                  className="flex cursor-pointer items-center gap-2 px-6 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium shadow-md"
+                  title="Skip forward"
+                >
+                  <FastForward className="w-5 h-5" />
+                  Forward
                 </button>
               </div>
             </div>

@@ -20,6 +20,8 @@ class VideoJobState:
     error_message: Optional[str] = None
     paused: bool = False
     should_stop: bool = False
+    skip_frames: int = 0  # Number of frames to skip (positive=forward, negative=backward)
+    target_frame: Optional[int] = None  # Target frame to seek to
     
     # Results (populated when completed)
     output_filename: Optional[str] = None
@@ -130,6 +132,37 @@ class VideoJobManager:
             logger.info(f"Job stopped: {job_id}")
             return True
         return False
+    
+    def skip_forward(self, job_id: str, frame_count: int = 30) -> bool:
+        """Skip forward by specified number of frames"""
+        job = self.get_job(job_id)
+        if job and job.status in ["processing", "paused"]:
+            # Calculate target frame
+            target = min(job.processed_frames + frame_count, job.total_frames)
+            job.target_frame = target
+            job.skip_frames = frame_count
+            logger.info(f"Job {job_id}: Skipping forward {frame_count} frames to frame {target}")
+            return True
+        return False
+    
+    def skip_backward(self, job_id: str, frame_count: int = 30) -> bool:
+        """Skip backward by specified number of frames"""
+        job = self.get_job(job_id)
+        if job and job.status in ["processing", "paused"]:
+            # Calculate target frame (can't go below 0)
+            target = max(job.processed_frames - frame_count, 0)
+            job.target_frame = target
+            job.skip_frames = -frame_count  # Negative for backward
+            logger.info(f"Job {job_id}: Skipping backward {frame_count} frames to frame {target}")
+            return True
+        return False
+    
+    def clear_skip(self, job_id: str):
+        """Clear the skip/seek command after it's been executed"""
+        job = self.get_job(job_id)
+        if job:
+            job.skip_frames = 0
+            job.target_frame = None
     
     def delete_job(self, job_id: str):
         with self._jobs_lock:

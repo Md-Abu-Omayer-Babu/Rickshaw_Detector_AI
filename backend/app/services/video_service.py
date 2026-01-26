@@ -206,6 +206,23 @@ class VideoService:
                     logger.info(f"[Job {job_id}] Stop signal received. Terminating processing.")
                     break
                 
+                # Check for skip/seek command
+                if job and job.target_frame is not None and job.target_frame != frame_count:
+                    target = job.target_frame
+                    logger.info(f"[Job {job_id}] Seeking from frame {frame_count} to frame {target}")
+                    
+                    # Seek to target frame
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, target)
+                    frame_count = target
+                    
+                    # Clear the skip command
+                    job_manager.clear_skip(job_id)
+                    
+                    # Read the new frame
+                    ret, frame = cap.read()
+                    if not ret:
+                        break
+                
                 # Check for pause signal
                 while job and job.paused:
                     import time
