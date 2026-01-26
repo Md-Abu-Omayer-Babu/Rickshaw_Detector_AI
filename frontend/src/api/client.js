@@ -152,17 +152,6 @@ export const getVideoStreamUrl = (jobId) => {
   return `${BASE_URL}/api/stream/video/${jobId}`;
 };
 
-export const processCCTVStream = async (cameraId, rtspUrl, duration = 60, cameraName = '') => {
-  const response = await apiClient.post('/api/cctv/stream', {
-    camera_id: cameraId,
-    rtsp_url: rtspUrl,
-    duration: duration,
-    camera_name: cameraName || cameraId,
-  });
-  
-  return response.data;
-};
-
 export const testStreamConnection = async (cameraId, rtspUrl) => {
   const response = await apiClient.post('/api/cctv/stream/test', {
     camera_id: cameraId,
@@ -197,11 +186,6 @@ export const getCCTVStatus = async (cameraId) => {
 
 export const getCCTVStreamUrl = (cameraId) => {
   return `${BASE_URL}/api/stream/cctv/${cameraId}`;
-};
-
-export const listCCTVStreams = async () => {
-  const response = await apiClient.get('/api/cctv/list');
-  return response.data;
 };
 
 /**
@@ -244,11 +228,6 @@ export const exportLogs = async (params = {}) => {
  */
 export const getDashboardAnalytics = async (cameraId = 'default') => {
   const response = await apiClient.get(`/api/analytics/dashboard?camera_id=${cameraId}`);
-  return response.data;
-};
-
-export const getDailyStats = async (date, cameraId = 'default') => {
-  const response = await apiClient.get(`/api/analytics/daily?date=${date}&camera_id=${cameraId}`);
   return response.data;
 };
 

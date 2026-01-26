@@ -55,17 +55,6 @@ class CCTVStreamRequest(BaseModel):
     camera_name: Optional[str] = Field("Camera", description="Human-readable camera name")
 
 
-class CCTVStreamResponse(BaseModel):
-    success: bool = True
-    camera_id: str = Field(..., description="Camera identifier")
-    total_entry: int = Field(..., ge=0, description="Total entry count")
-    total_exit: int = Field(..., ge=0, description="Total exit count")
-    net_count: int = Field(..., description="Net count (entry - exit)")
-    frames_processed: int = Field(..., ge=0, description="Number of frames processed")
-    duration: float = Field(..., description="Processing duration in seconds")
-    message: str = "Stream processed successfully"
-
-
 class HistoryResponse(BaseModel):
     success: bool = True
     total_records: int = Field(..., ge=0, description="Total number of detection records")

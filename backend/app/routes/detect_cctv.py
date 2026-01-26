@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-from app.db.models import CCTVStreamRequest, CCTVStreamResponse, ErrorResponse
+from app.db.models import CCTVStreamRequest
 from app.services.cctv_service import CCTVService
 from app.core.startup import get_detector
 from app.core.config import logger
@@ -118,83 +118,6 @@ async def get_cctv_status(camera_id: str):
     except Exception as e:
         logger.error(f"Error getting status: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error getting status: {str(e)}")
-
-
-@router.get(
-    "/list",
-    summary="List all active CCTV streams",
-    description="Get list of all currently active continuous streams."
-)
-async def list_cctv_streams():
-    try:
-        # Get detector instance
-        detector = get_detector()
-        
-        # Create CCTV service
-        cctv_service = CCTVService(detector)
-        
-        # Get list
-        result = cctv_service.list_active_streams()
-        
-        return result
-        
-    except Exception as e:
-        logger.error(f"Error listing streams: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Error listing streams: {str(e)}")
-
-
-@router.post(
-    "/stream",
-    response_model=CCTVStreamResponse,
-    responses={
-        400: {"model": ErrorResponse, "description": "Invalid request"},
-        500: {"model": ErrorResponse, "description": "Processing error"}
-    },
-    summary="Process CCTV/RTSP stream",
-    description="Process a live CCTV or RTSP stream with real-time rickshaw detection and entry/exit counting."
-)
-async def process_cctv_stream(request: CCTVStreamRequest):
-    try:
-        logger.info(f"Starting CCTV stream processing: camera={request.camera_id}, "
-                   f"duration={request.duration}s")
-        
-        # Get detector instance
-        detector = get_detector()
-        
-        # Create CCTV service
-        cctv_service = CCTVService(detector)
-        
-        # Process stream (this will block for the duration)
-        stats = await cctv_service.start_stream(
-            camera_id=request.camera_id,
-            rtsp_url=request.rtsp_url,
-            duration=request.duration,
-            camera_name=request.camera_name or request.camera_id
-        )
-        
-        logger.info(f"CCTV stream processing complete: {stats}")
-        
-        return CCTVStreamResponse(
-            camera_id=stats['camera_id'],
-            total_entry=stats['total_entry'],
-            total_exit=stats['total_exit'],
-            net_count=stats['net_count'],
-            frames_processed=stats['frames_processed'],
-            duration=stats['duration']
-        )
-        
-    except RuntimeError as e:
-        logger.error(f"Runtime error processing CCTV stream: {str(e)}")
-        raise HTTPException(
-            status_code=400,
-            detail=str(e)
-        )
-    except Exception as e:
-        logger.error(f"Error processing CCTV stream: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error processing stream: {str(e)}"
-        )
 
 
 @router.post(

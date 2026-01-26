@@ -312,10 +312,7 @@ class CCTVService:
         self.job_manager = get_cctv_job_manager()  # NEW: Job manager for continuous mode
         logger.info("CCTVService initialized")
     
-    # ========================================
-    # NEW: Continuous Streaming Methods (Live Preview)
-    # ========================================
-    
+
     def start_continuous_stream(
         self,
         camera_id: str,
@@ -450,54 +447,9 @@ class CCTVService:
             "streams": streams
         }
     
-    # ========================================
-    # Legacy Batch Processing Method (Preserved)
-    # ========================================
-    
-    async def start_stream(
-        self,
-        camera_id: str,
-        rtsp_url: str,
-        duration: Optional[int] = None,
-        camera_name: str = "Camera"
-    ) -> Dict:
-        # Check concurrent stream limit
-        if len(self.active_streams) >= settings.max_concurrent_streams:
-            raise RuntimeError(
-                f"Maximum concurrent streams ({settings.max_concurrent_streams}) reached"
-            )
-        
-        # Create stream processor in batch mode (continuous_mode=False)
-        processor = CCTVStreamProcessor(
-            detector=self.detector,
-            camera_id=camera_id,
-            rtsp_url=rtsp_url,
-            camera_name=camera_name,
-            continuous_mode=False  # Batch processing mode
-        )
-        
-        self.active_streams[camera_id] = processor
-        
-        try:
-            # Process stream (blocking call)
-            stats = processor.process_stream(duration=duration)
-            return stats
-            
-        finally:
-            # Remove from active streams
-            if camera_id in self.active_streams:
-                del self.active_streams[camera_id]
-    
-    def stop_stream(self, camera_id: str):
-        if camera_id in self.active_streams:
-            self.active_streams[camera_id].stop()
-            logger.info(f"Stop signal sent to camera: {camera_id}")
-        else:
-            logger.warning(f"Camera not found in active streams: {camera_id}")
-    
     def stop_all_streams(self):
         for camera_id in list(self.active_streams.keys()):
-            self.stop_stream(camera_id)
+            self.stop_continuous_stream(camera_id)
         logger.info("All streams stopped")
     
     def get_active_streams(self) -> list:
