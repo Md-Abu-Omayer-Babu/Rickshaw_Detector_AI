@@ -76,23 +76,6 @@ export const detectImage = async (file) => {
   return response.data;
 };
 
-export const detectVideo = async (file, enableCounting = true, cameraId = 'default') => {
-  const formData = new FormData();
-  formData.append('file', file);
-  
-  const response = await apiClient.post(
-    `/api/detect/video?enable_counting=${enableCounting}&camera_id=${cameraId}`,
-    formData,
-    {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }
-  );
-  
-  return response.data;
-};
-
 /**
  * Async video detection with live preview support
  * Returns job_id immediately for streaming

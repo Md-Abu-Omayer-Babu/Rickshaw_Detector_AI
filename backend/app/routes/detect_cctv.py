@@ -10,11 +10,6 @@ from app.core.config import logger
 # Create router
 router = APIRouter(prefix="/cctv", tags=["CCTV Stream"])
 
-
-# ========================================
-# NEW: Continuous Streaming Endpoints (Live Preview)
-# ========================================
-
 class CCTVStartRequest(BaseModel):
     camera_id: str
     rtsp_url: str
@@ -146,11 +141,6 @@ async def list_cctv_streams():
     except Exception as e:
         logger.error(f"Error listing streams: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error listing streams: {str(e)}")
-
-
-# ========================================
-# Legacy Batch Processing Endpoint (Preserved)
-# ========================================
 
 
 @router.post(
